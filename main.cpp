@@ -130,5 +130,5 @@ void create_graph_file_cuda(const std::string &filename, int rank, int size, int
 
     MPI_File_close(&fh);
 
-    delete h_buf;
+    delete [] h_buf;
 }

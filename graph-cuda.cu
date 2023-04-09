@@ -77,6 +77,39 @@ __global__ void generate_graph_kernel(int* data, int* write_count, int buf_len, 
     }
 }
 
+__global__ void generate_graph_kernel_v2(int* data, int* write_count, int buf_len, curandState* state, float p, 
+                                      int node_count, int nodes_per_rank, int start_node, int end_node) {
+    
+    // extern __shared__ int s[];
+    // __shared__ int thread_write_count;
+    // int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // int i = start_node + blockIdx.x;
+
+
+    // int n = node_count/blockDim.x + ((node_count % blockDim.x) != 0);
+    // int j_start = threadIdx.x * n;
+    // int j_end = (j_start + n) < node_count ? j_start + n : node_count;
+
+    // // if (threadIdx.x == 0) thread_write_count = 0;
+    // // __syncthreads();
+
+    // printf("j_start %d j_end %d\n", j_start, j_end);
+    // for (int j = j_start; j < j_end; j++) {
+    //     float rand = curand_uniform(state + idx);
+    //     if (rand <= p) {
+    //         // s[j] = 1;
+    //     }
+    //     printf("edge %d --> %d %d\n", i, j, 0);
+    // }
+
+
+
+    // __syncthreads();
+
+
+
+}
 
 void generate_graph(int* h_buf, int buf_len, int* h_write_count, float h_p) {
 
@@ -98,17 +131,24 @@ void generate_graph(int* h_buf, int buf_len, int* h_write_count, float h_p) {
 
     test_write_kernel<<<1, buf_len>>>(d_buf);
 
-    int threads = 1024;
-    int blocks = (nodes_per_rank + threads - 1)/threads;
+    int threads = 256;
+    int blocks =  nodes_per_rank; // (nodes_per_rank + threads - 1)/threads;
     int seed = 39483 + 2 << rank;
     float p = h_p;
+    int ratio = 1;
+
 
     // Setup the random number generator thing idk. 
-    setup_kernel<<<blocks, threads>>>(devStates, seed);
+    setup_kernel<<<blocks * ratio, threads>>>(devStates, seed);
 
     // Generate the graph.
-    generate_graph_kernel<<<blocks, threads>>>(d_buf, d_write_count, buf_len, devStates, p, 
-        node_count, nodes_per_rank, start_node, end_node);
+    // generate_graph_kernel<<<blocks, threads>>>(d_buf, d_write_count, buf_len, devStates, p, 
+    //     node_count, nodes_per_rank, start_node, end_node);
+
+    // printf("here\n");
+    // generate_graph_kernel_v2<<<blocks * ratio, threads>>>(d_buf, d_write_count, buf_len, devStates, p, 
+    //     node_count, nodes_per_rank, start_node, end_node);
+    // printf("here\n");
 
     // Copy device memory to host memory.
     cudaMemcpy(h_buf, d_buf, buf_len * sizeof(int), cudaMemcpyDeviceToHost);
