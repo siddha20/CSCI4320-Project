@@ -12,7 +12,7 @@
 typedef std::vector<std::vector<char>> matrix;
 
 void make_graph_from_file(const std::string &filename, matrix &graph);
-std::pair<matrix, std::vector<int>> make_graph(int node_count, double density, int celeb_count);
+std::pair<matrix, int> make_graph(int node_count, double density);
 
 int main(int argc, char** argv) {
 
@@ -29,13 +29,12 @@ int main(int argc, char** argv) {
     std::srand(1230128093);
 
 
-    std::pair<matrix, std::vector<int>> pair = make_graph(10, 1.0, 1);
+    std::pair<matrix, int> pair = make_graph(10, 1.0);
     matrix graph = pair.first;
-    std::vector celebs = pair.second;
-
-    for (int i = 1; auto c : celebs) {
-        std::cout << "celeb " << i++ << " :" << c << std::endl;
-    }
+    int celeb = pair.second;
+    
+    std::cout << "celeb: " << celeb << std::endl;
+    
 
     for (int i = 0; i < graph.size(); i++) {
         for (int j = 0; j < graph[i].size(); j++) {
@@ -49,17 +48,15 @@ int main(int argc, char** argv) {
     return EXIT_SUCCESS;
 }
 
-std::pair<matrix, std::vector<int>> make_graph(int node_count, double density, int celeb_count) {
+std::pair<matrix, int> make_graph(int node_count, double density) {
 
     matrix graph(node_count, std::vector<char>(node_count, 0));
-    std::vector<int> celebs;
-
-    for (int i = 0; i < celeb_count; i++) celebs.push_back(std::rand() % node_count);
+    int celeb = std::rand() % node_count;
 
     for (int i = 0; i < node_count; i++) {
         
         /* add celeb to graph*/
-        if (std::find(celebs.begin(), celebs.end(), i) != celebs.end()) {
+        if (i == celeb) {
             for (int j = 0; j < node_count; j++) {
                 if (j != i) graph[j][i] = 1;
             }
@@ -76,5 +73,5 @@ std::pair<matrix, std::vector<int>> make_graph(int node_count, double density, i
         }
     }
 
-    return std::make_pair(graph, celebs);
+    return std::make_pair(graph, celeb);
 }

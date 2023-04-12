@@ -64,7 +64,7 @@ std::pair<matrix, std::vector<int>> make_graph(int node_count, double density, i
                 if (j != i) graph[j][i] = 1;
             }
         } 
-        
+
         /* add non celeb to graph*/
         else {
             for (int j = 0; j < node_count; j++) {
