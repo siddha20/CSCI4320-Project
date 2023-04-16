@@ -1,7 +1,9 @@
 all_aimos:
-	(cd graph_algos ; mkdir bin ; make aimos)
-	(cd graph_gen ; mkdir bin ; make aimos)
+	(mkdir -p bin)
+	(cd graph_algos ; make aimos)
+	(cd generate ; make aimos)
 
 all_not_aimos:
-	(cd graph_algos ; mkdir bin ; make not_aimos)
-	(cd graph_gen ; mkdir bin ; make not_aimos)
+	(mkdir -p bin)
+	(cd graph_algos ; make not_aimos)
+	(cd generate ; make not_aimos)
