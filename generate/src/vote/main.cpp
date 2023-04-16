@@ -43,6 +43,7 @@ int main(int argc, char** argv) {
     std::srand(1230128093 + rank << 2);
 
     if (device_type == "CPU" ) create_vote_file(filename, rank, size, vote_count, candidate_count);
+    else if (device_type == "CUDA") std::cerr << "Error: no CUDA implementation. " << std::endl;
     else {
         std::cerr << "Error: did not recognize device type." << std::endl;
         return EXIT_FAILURE;
@@ -101,5 +102,12 @@ void create_vote_file(const std::string &filename, int rank, int size, int vote_
     else MPI_File_seek(fh, cur_pos[rank - 1], MPI_SEEK_SET);
     MPI_File_write_all(fh, vote_buffer.c_str(), vote_buffer.size(), MPI_CHAR, &status);
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if (rank == 0) {
+        std::string statistics = std::to_string(vote_count) + ":" + std::to_string(candidate_count) + "\n";
+        MPI_File_seek(fh, 0, MPI_SEEK_END);
+        MPI_File_write(fh, statistics.c_str(), statistics.size(), MPI_CHAR, &status);
+    }
     MPI_File_close(&fh);
 }
