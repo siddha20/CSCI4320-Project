@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     std::string device_type;
 
     if (argc != 5) {
-        std::cerr << "Usage: a.out <filename> <node_count> <density> <'CPU' or 'CUDA'>" << std::endl;
+        std::cerr << "Usage: graph_gen.out <filename> <node_count> <density> <'CPU' or 'CUDA'>" << std::endl;
         return EXIT_FAILURE;
     } else {
         filename = argv[1];
