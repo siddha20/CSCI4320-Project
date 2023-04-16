@@ -70,9 +70,9 @@ std::string create_vote_sequence(int candidate_count) {
     return output;
 }
 
-
 /* Create file containing a ton of votes. */
-/* Candidates go from 1..candidate_count, voters go from 0..vote_count*/
+/* Candidates go from 1..candidate_count, 
+   voters go from 0..vote_count */
 void create_vote_file(const std::string &filename, int rank, int size, int vote_count, int candidate_count) {
 
     MPI_File fh;
