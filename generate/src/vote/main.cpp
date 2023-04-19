@@ -86,10 +86,14 @@ void create_vote_file(const std::string &filename, int rank, int size, int vote_
 
     // Create votes
     std::string vote_buffer = "";
+    if (rank == 0) vote_buffer = std::to_string(vote_count) + ":" + std::to_string(candidate_count) + "\n";
+
     for (int i = start_voter_id; i < end_voter_id; i++) {
         std::string vote_sequence = create_vote_sequence(candidate_count);
         vote_buffer += std::to_string(i) + ":" + vote_sequence + "\n";
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     // Figure out cursor positions
     int cur_pos[size];
@@ -102,12 +106,5 @@ void create_vote_file(const std::string &filename, int rank, int size, int vote_
     else MPI_File_seek(fh, cur_pos[rank - 1], MPI_SEEK_SET);
     MPI_File_write_all(fh, vote_buffer.c_str(), vote_buffer.size(), MPI_CHAR, &status);
 
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    if (rank == 0) {
-        std::string statistics = std::to_string(vote_count) + ":" + std::to_string(candidate_count) + "\n";
-        MPI_File_seek(fh, 0, MPI_SEEK_END);
-        MPI_File_write(fh, statistics.c_str(), statistics.size(), MPI_CHAR, &status);
-    }
     MPI_File_close(&fh);
 }
