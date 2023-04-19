@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
+#include "common.h"
 #include "mpi.h"
 
 #ifndef NOT_AIMOS
@@ -80,9 +81,7 @@ void create_vote_file(const std::string &filename, int rank, int size, int vote_
     MPI_Status status;
     MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
 
-    int votes_per_rank = (vote_count/size) + ((vote_count % size) != 0);
-    int start_voter_id= rank * votes_per_rank;
-    int end_voter_id = (start_voter_id + votes_per_rank) < vote_count ? start_voter_id + votes_per_rank : vote_count;
+    const auto [votes_per_rank, start_voter_id, end_voter_id] = partition(vote_count, rank, size);
 
     // Create votes
     std::string vote_buffer = "";

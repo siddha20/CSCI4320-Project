@@ -4,9 +4,10 @@
 #include <algorithm>
 #include <iterator>
 #include <utility>
+#include "common.h"
 #include "mpi.h"
 
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 10000
 #define OVERLAP 100
 
 #ifndef NOT_AIMOS
@@ -53,7 +54,7 @@ int main(int argc, char** argv) {
     MPI_File_get_size(fh, &file_size);
     printf("file size: %d\n", file_size);
 
-    char buffer[BUFFER_SIZE];
+    char* buffer = new char[BUFFER_SIZE]();
     MPI_File_read_all(fh, buffer, file_size, MPI_CHAR, &status);
     
     std::string line;
@@ -78,9 +79,7 @@ int main(int argc, char** argv) {
     line.clear();
 
     file_size -= i;
-    int bytes_per_rank = (file_size/size) + ((file_size % size) != 0);
-    int start_byte = rank * bytes_per_rank;
-    int end_byte = (start_byte  + bytes_per_rank) < file_size ? start_byte  + bytes_per_rank : file_size;
+    auto [bytes_per_rank, start_byte, end_byte] = partition(file_size, rank, size);
     start_byte += i;
     end_byte = end_byte + OVERLAP < file_size ? end_byte + i + OVERLAP : file_size + i;
 
@@ -107,7 +106,7 @@ MPI_Barrier(MPI_COMM_WORLD);
 
 // this vector contains distinct voter ids for each rank.
 std::vector<int> voter_diff;
-
+if (rank == size - 1) voter_diff = voters;
 // compare overlap
 for (int j = 0; j < size - 1; j++) {
 
@@ -136,11 +135,12 @@ for (int j = 0; j < size - 1; j++) {
     }
 }
 
+    std::cout << "in rank: " << rank << std::endl;
+    for (auto id : voter_diff) {
+        std::cout << id << ", ";
+    } std::cout << std::endl;
 
-
-
-
-
+    delete [] buffer;
     MPI_File_close(&fh);
     MPI_Finalize();
 
