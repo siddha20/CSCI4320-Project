@@ -8,10 +8,6 @@ int find_celeb();
 
 int main(int argc, char** argv) {
 
-    #ifdef NOT_AIMOS
-        auto clock_now = []{ return 0; };
-    #endif
-
     MPI_Init(&argc, &argv);
 
     int node_count, density;

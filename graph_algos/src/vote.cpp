@@ -2,13 +2,9 @@
 
 #define FIRST_LINE_BUFFER_SIZE 1024
 #define BUFFER_SIZE 10000
-
-/**** MAKE SURE OVERLAP IS PROPERLY SET. ****/
-/**** SHOULD BE EQUAL TO LENGTH OF LONGEST LINE ****/
-#define OVERLAP 100
+#define OVERLAP_MULTIPLIER 2
 
 std::vector<int> tokenize_line(const std::string &line, char delimitier);
-int get_line(std::string &new_line, char* buffer, int buffer_size, int offset);
 
 int main(int argc, char** argv) {
 
@@ -57,11 +53,13 @@ int main(int argc, char** argv) {
     int first_line_size = cursor;
     delete [] first_line_buffer;
 
+
     // Calculate start and end bytes.
+    const int overlap_size = OVERLAP_MULTIPLIER * (candidate_count * std::to_string(candidate_count).length());
     file_size -= first_line_size;
     auto [bytes_per_rank, start_byte, end_byte] = partition(file_size, rank, size);
     start_byte += first_line_size;
-    end_byte = end_byte + OVERLAP < file_size ? end_byte + first_line_size + OVERLAP : file_size + first_line_size;
+    end_byte = end_byte + overlap_size < file_size ? end_byte + first_line_size + overlap_size : file_size + first_line_size;
 
     // Collect all the data from the file.
     int buffer_size = end_byte - start_byte; 
@@ -87,15 +85,17 @@ int main(int argc, char** argv) {
     // Find distinct voters per rank.
     std::vector<int> voter_diff;
     if (rank == size - 1) voter_diff = voters;
-    // Compare overlap
+
     for (int j = 0; j < size - 1; j++) {
         std::vector<int> temp;
         int voter_size;
 
-        if (rank == j + 1) send_vec(voters, j);
+        if (rank == j + 1) MPI_Send_vec(voters, j);
 
         if (rank == j) { 
-            recv_vec(temp, j + 1);
+            MPI_Recv_vec(temp, j + 1);
+
+            // Get the difference between the two vectors. 
             std::set_difference(voters.begin(), voters.end(), temp.begin(), temp.end(), 
                 std::inserter(voter_diff, voter_diff.begin()));
         }
@@ -112,23 +112,6 @@ int main(int argc, char** argv) {
 
 
     return EXIT_SUCCESS;
-}
-
-
-
-int get_line(std::string &new_line, char* buffer, int buffer_size, int offset) {
-
-    new_line.clear();
-    new_line = "";
-
-    if (offset >= buffer_size) return -1;
-
-    for (int i = offset; i < buffer_size; i++) {
-        if (buffer[i] == '\n') {
-            return offset + new_line.size() + 1;
-        } else new_line += buffer[i];
-    }
-    return offset + new_line.size() + 1;
 }
 
 std::vector<int> tokenize_line(const std::string &line, char delimitier) {

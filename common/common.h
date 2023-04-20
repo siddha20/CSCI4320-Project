@@ -20,6 +20,21 @@
     auto clock_now = []{ return 0; };
 #endif
 
+int get_line(std::string &new_line, char* buffer, int buffer_size, int offset) {
+
+    new_line.clear();
+    new_line = "";
+
+    if (offset >= buffer_size) return -1;
+
+    for (int i = offset; i < buffer_size; i++) {
+        if (buffer[i] == '\n') {
+            return offset + new_line.size() + 1;
+        } else new_line += buffer[i];
+    }
+    return offset + new_line.size() + 1;
+}
+
 struct ParitionData {
     int size_per_rank;
     int start;
@@ -41,7 +56,7 @@ void print_vec(const std::vector<T> &vec) {
 }
 
 template <typename T> 
-void send_vec(const std::vector<T> &src, int dst_rank) {
+void MPI_Send_vec(const std::vector<T> &src, int dst_rank) {
 
         MPI_Datatype mpi_type = get_mpi_type<T>();
 
@@ -51,7 +66,7 @@ void send_vec(const std::vector<T> &src, int dst_rank) {
 }
 
 template <typename T> 
-void recv_vec(std::vector<T> &dst, int src_rank) {
+void MPI_Recv_vec(std::vector<T> &dst, int src_rank) {
 
         MPI_Datatype mpi_type = get_mpi_type<T>();
         MPI_Status status;
