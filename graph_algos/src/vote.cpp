@@ -7,7 +7,12 @@
 #include "common.h"
 #include "mpi.h"
 
+
+#define FIRST_LINE_BUFFER_SIZE 1024
 #define BUFFER_SIZE 10000
+
+/**** MAKE SURE OVERLAP IS PROPERLY SET. ****/
+/**** SHOULD BE EQUAL TO LENGTH OF LONGEST LINE ****/
 #define OVERLAP 100
 
 #ifndef NOT_AIMOS
@@ -52,97 +57,92 @@ int main(int argc, char** argv) {
 
     MPI_Offset file_size;
     MPI_File_get_size(fh, &file_size);
-    printf("file size: %d\n", file_size);
+    if (rank == 0) printf("file size: %lld\n", file_size);
 
-    char* buffer = new char[BUFFER_SIZE]();
-    MPI_File_read_all(fh, buffer, file_size, MPI_CHAR, &status);
-    
+
+    // Read in first line into buffer.
+    char* first_line_buffer = new char[FIRST_LINE_BUFFER_SIZE]();
+    MPI_File_read_all(fh, first_line_buffer, FIRST_LINE_BUFFER_SIZE, MPI_CHAR, &status);
+
+
+    // Get the first line from the buffer.
     std::string line;
-    bool first_line = true;
-    int i;
-    int vote_count;
-    int candidate_count;
+    int cursor = 0;
+    cursor = get_line(line, first_line_buffer, file_size, cursor);
+    std::vector<int> nums = tokenize_line(line, ':');
+    int vote_count = nums[0];
+    int candidate_count = nums[1];
+    int first_line_size = cursor;
+    delete [] first_line_buffer;
 
-    // find the first line
-    for (i = 0; i < file_size; i++) {
-        if (buffer[i] == '\n') {
-            std::vector<int> nums = tokenize_line(line, ':');
-            vote_count = nums[0];
-            candidate_count = nums[1];
-            // std::cout << line << std::endl;
-            line.clear();
-            break;
-        } 
-        else line += buffer[i];
-    }
-
-    line.clear();
-
-    file_size -= i;
+    // Calculate start and end bytes.
+    file_size -= first_line_size;
     auto [bytes_per_rank, start_byte, end_byte] = partition(file_size, rank, size);
-    start_byte += i;
-    end_byte = end_byte + OVERLAP < file_size ? end_byte + i + OVERLAP : file_size + i;
+    start_byte += first_line_size;
+    end_byte = end_byte + OVERLAP < file_size ? end_byte + first_line_size + OVERLAP : file_size + first_line_size;
 
-    printf("start byte: %d, end byte: %d\n", start_byte, end_byte);
+    // Collect all the data from the file.
+    int buffer_size = end_byte - start_byte; 
+    char* buffer = new char[buffer_size]();
+    MPI_File_read_at_all(fh, start_byte, buffer, buffer_size, MPI_CHAR, &status);
 
-    // rest of the file
     std::vector<int> voters;
-    for (int j = start_byte; j < end_byte; j++) {
-    if (buffer[j] == '\n') {
+    cursor = 0;
+    while((cursor = get_line(line, buffer, buffer_size, cursor)) != -1) {
         std::vector<int> nums = tokenize_line(line, ':');
         if (nums.size() == candidate_count + 1) {
             voters.push_back(nums[0]);
-            std::cout << line << std::endl;
+            // std::cout << line << std::endl;
         }
-        line.clear();
-    } 
-    else line += buffer[j];
-}
-
-std::sort(voters.begin(), voters.end());
-
-MPI_Barrier(MPI_COMM_WORLD);
-
-
-// this vector contains distinct voter ids for each rank.
-std::vector<int> voter_diff;
-if (rank == size - 1) voter_diff = voters;
-// compare overlap
-for (int j = 0; j < size - 1; j++) {
-
-    std::vector<int> temp;
-    int voter_size;
-
-    if (rank == j + 1) {
-        int k = voters.size();
-        MPI_Send(&k, 1, MPI_INT, j, 0, MPI_COMM_WORLD);
     }
-    if (rank == j) {
-        MPI_Recv(&voter_size, 1, MPI_INT, j + 1, 0, MPI_COMM_WORLD, &status);
-        // std::cout << "voter_size: " << voter_size << std::endl;
-        temp.resize(voter_size);
+    delete [] buffer;
+
+
+    // Very important to sort voters.
+    std::sort(voters.begin(), voters.end());
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Find distinct voters per rank.
+    std::vector<int> voter_diff;
+    if (rank == size - 1) voter_diff = voters;
+    // Compare overlap
+    for (int j = 0; j < size - 1; j++) {
+        std::vector<int> temp;
+        int voter_size;
+
+        if (rank == j + 1) {
+            int k = voters.size();
+            MPI_Send(&k, 1, MPI_INT, j, 0, MPI_COMM_WORLD);
+        }
+        if (rank == j) {
+            MPI_Recv(&voter_size, 1, MPI_INT, j + 1, 0, MPI_COMM_WORLD, &status);
+            temp.resize(voter_size);
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        if (rank == j + 1) {
+            MPI_Send(&voters[0], voters.size(), MPI_INT, j, 0, MPI_COMM_WORLD);
+        }
+        if (rank == j) {
+            MPI_Recv(&temp[0], voter_size, MPI_INT, j + 1, 0, MPI_COMM_WORLD, &status);
+            std::set_difference(voters.begin(), voters.end(), temp.begin(), temp.end(), 
+                std::inserter(voter_diff, voter_diff.begin()));
+        }
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
-
-    if (rank == j + 1) {
-        MPI_Send(&voters[0], voters.size(), MPI_INT, j, 0, MPI_COMM_WORLD);
-    }
-    if (rank == j) {
-        MPI_Recv(&temp[0], voter_size, MPI_INT, j + 1, 0, MPI_COMM_WORLD, &status);
-        std::set_difference(voters.begin(), voters.end(), temp.begin(), temp.end(), 
-            std::inserter(voter_diff, voter_diff.begin()));
-    }
-}
 
     std::cout << "in rank: " << rank << std::endl;
     for (auto id : voter_diff) {
         std::cout << id << ", ";
     } std::cout << std::endl;
 
-    delete [] buffer;
+
+
     MPI_File_close(&fh);
     MPI_Finalize();
+
 
     return EXIT_SUCCESS;
 }
@@ -150,19 +150,16 @@ for (int j = 0; j < size - 1; j++) {
 int get_line(std::string &new_line, char* buffer, int buffer_size, int offset) {
 
     new_line.clear();
+    new_line = "";
 
     if (offset >= buffer_size) return -1;
 
-    std::cout << "here " << new_line << std::endl;;
-
     for (int i = offset; i < buffer_size; i++) {
         if (buffer[i] == '\n') {
-            return new_line.size() + 1;
+            return offset + new_line.size() + 1;
         } else new_line += buffer[i];
     }
-
-    std::cout << "here " << new_line << std::endl;;
-    return new_line.size() + 1;
+    return offset + new_line.size() + 1;
 }
 
 std::vector<int> tokenize_line(const std::string &line, char delimitier) {
