@@ -1,12 +1,4 @@
-#include <string>
-#include <cstdlib>
-#include <vector>
-#include <algorithm>
-#include <iterator>
-#include <utility>
 #include "common.h"
-#include "mpi.h"
-
 
 #define FIRST_LINE_BUFFER_SIZE 1024
 #define BUFFER_SIZE 10000
@@ -15,20 +7,10 @@
 /**** SHOULD BE EQUAL TO LENGTH OF LONGEST LINE ****/
 #define OVERLAP 100
 
-#ifndef NOT_AIMOS
-    #include "clockcycle.h"
-    #define CLOCK_FREQ 512000000
-#endif
-
-
 std::vector<int> tokenize_line(const std::string &line, char delimitier);
 int get_line(std::string &new_line, char* buffer, int buffer_size, int offset);
 
 int main(int argc, char** argv) {
-
-    #ifdef NOT_AIMOS
-        auto clock_now = []{ return 0; };
-    #endif
 
     MPI_Init(&argc, &argv);
 
@@ -110,22 +92,10 @@ int main(int argc, char** argv) {
         std::vector<int> temp;
         int voter_size;
 
-        if (rank == j + 1) {
-            int k = voters.size();
-            MPI_Send(&k, 1, MPI_INT, j, 0, MPI_COMM_WORLD);
-        }
-        if (rank == j) {
-            MPI_Recv(&voter_size, 1, MPI_INT, j + 1, 0, MPI_COMM_WORLD, &status);
-            temp.resize(voter_size);
-        }
+        if (rank == j + 1) send_vec(voters, j);
 
-        MPI_Barrier(MPI_COMM_WORLD);
-
-        if (rank == j + 1) {
-            MPI_Send(&voters[0], voters.size(), MPI_INT, j, 0, MPI_COMM_WORLD);
-        }
-        if (rank == j) {
-            MPI_Recv(&temp[0], voter_size, MPI_INT, j + 1, 0, MPI_COMM_WORLD, &status);
+        if (rank == j) { 
+            recv_vec(temp, j + 1);
             std::set_difference(voters.begin(), voters.end(), temp.begin(), temp.end(), 
                 std::inserter(voter_diff, voter_diff.begin()));
         }
@@ -134,11 +104,8 @@ int main(int argc, char** argv) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     std::cout << "in rank: " << rank << std::endl;
-    for (auto id : voter_diff) {
-        std::cout << id << ", ";
-    } std::cout << std::endl;
-
-
+    print_vec(voter_diff);
+    std::cout << std::endl;
 
     MPI_File_close(&fh);
     MPI_Finalize();
@@ -146,6 +113,8 @@ int main(int argc, char** argv) {
 
     return EXIT_SUCCESS;
 }
+
+
 
 int get_line(std::string &new_line, char* buffer, int buffer_size, int offset) {
 
@@ -165,18 +134,16 @@ int get_line(std::string &new_line, char* buffer, int buffer_size, int offset) {
 std::vector<int> tokenize_line(const std::string &line, char delimitier) {
     std::vector<int> nums;
 
-    // std::cout << line << std::endl;
     std::string token;
     for (int i = 0; i < line.size() + 1; i++) {
         if (i == line.size() || line[i] == delimitier) {
             if (token.size() > 0) {
                 int j = std::stoi(token);
                 nums.push_back(j);
-                // std::cout << j << ", ";
             }
             token.clear();
         } else token += line[i];
     }
-    // std::cout << "\n";
+
     return nums;
 }

@@ -1,24 +1,9 @@
-#include <iostream>
-#include <string>
-#include <cstdlib>
 #include "common.h"
-#include "mpi.h"
-
-#ifndef NOT_AIMOS
-    #include "clockcycle.h"
-    #define CLOCK_FREQ 512000000
-#endif
-
-
 
 void create_vote_file(const std::string &filename, int rank, int size, int vote_count, int candidate_count);
 std::string create_vote_sequence(int candidate_count);
 
 int main(int argc, char** argv) {
-
-    #ifdef NOT_AIMOS
-        auto clock_now = []{ return 0; };
-    #endif
 
     MPI_Init(&argc, &argv);
 

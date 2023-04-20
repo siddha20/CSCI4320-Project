@@ -1,12 +1,4 @@
-#include <iostream>
-#include <string>
-#include <cstdlib>
-#include "mpi.h"
-
-#ifndef NOT_AIMOS
-    #include "clockcycle.h"
-    #define CLOCK_FREQ 512000000
-#endif
+#include "common.h"
 
 void create_graph_file(const std::string &filename, int rank, int size, int node_count, double p);
 void create_graph_file_cuda(const std::string &filename, int rank, int size, int node_count, double p);
@@ -15,10 +7,6 @@ void cuda_init(int rank, int size, int node_count);
 void generate_graph(int* h_buf, int buf_len, int* h_write_count, float h_p);
 
 int main(int argc, char** argv) {
-
-    #ifdef NOT_AIMOS
-        auto clock_now = []{ return 0; };
-    #endif
 
     MPI_Init(&argc, &argv);
 

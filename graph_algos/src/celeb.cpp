@@ -1,13 +1,4 @@
-#include <string>
-#include <cstdlib>
-#include <vector>
-#include <utility>
-#include "mpi.h"
-
-#ifndef NOT_AIMOS
-    #include "clockcycle.h"
-    #define CLOCK_FREQ 512000000
-#endif
+#include "common.h"
 
 typedef std::vector<std::vector<char>> matrix;
 
