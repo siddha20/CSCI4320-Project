@@ -67,11 +67,13 @@ int main(int argc, char** argv) {
     MPI_File_read_at_all(fh, start_byte, buffer, buffer_size, MPI_CHAR, &status);
 
     std::vector<int> voters;
+    std::map<int, std::vector<int> > data;
     cursor = 0;
     while((cursor = get_line(line, buffer, buffer_size, cursor)) != -1) {
         std::vector<int> nums = tokenize_line(line, ':');
         if (nums.size() == candidate_count + 1) {
             voters.push_back(nums[0]);
+            data[nums[0]] = std::vector<int>(nums.begin() + 1, nums.end());
             // std::cout << line << std::endl;
         }
     }
@@ -101,11 +103,30 @@ int main(int argc, char** argv) {
         }
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    // Create graph
+    std::vector<std::vector<int>> graph(candidate_count, std::vector<int>(candidate_count, 0));
+    for (auto voter : voter_diff) {
+        std::vector<int> candidates = data[voter];
+        std::cout << voter << ": ";
+        print_vec(candidates);
+        std::cout << std::endl;
 
-    std::cout << "in rank: " << rank << std::endl;
-    print_vec(voter_diff);
-    std::cout << std::endl;
+        for (int i = 0; i < candidates.size(); i++) {
+            for (int j = i + 1; j < candidates.size(); j++) {
+                graph[candidates[i] - 1][candidates[j] - 1]++;
+            }
+        }
+    }
+
+    if (rank == 0) {
+        print_vec(voter_diff);
+        std::cout << std::endl;
+        for (const auto &row : graph) {
+            print_vec(row);
+            std::cout << std::endl;
+        }
+    }
+
 
     MPI_File_close(&fh);
     MPI_Finalize();
