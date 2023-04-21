@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <complex>
 #include "mpi.h"
-#include "mpi_extra.h"
+#include "mpi-extra.h"
 
 #ifndef NOT_AIMOS
     #include "clockcycle.h"

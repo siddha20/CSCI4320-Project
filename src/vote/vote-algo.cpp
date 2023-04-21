@@ -23,16 +23,12 @@ int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
 
     std::string input_filename;
-    std::string output_filename;
-    std::string device_type;
 
-    if (argc != 4) {
-        std::cerr << "Usage: vote_gen.out <input_filename> <output_filename> <'CPU' or 'CUDA'>" << std::endl;
+    if (argc != 2) {
+        std::cerr << "Usage: vote_algo.out <input_filename>" << std::endl;
         return EXIT_FAILURE;
     } else {
         input_filename = argv[1];
-        output_filename = argv[2];
-        device_type = argv[3];
     }
 
     RankInfo rank_info;
