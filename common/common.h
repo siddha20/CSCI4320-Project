@@ -9,8 +9,9 @@
 #include <iterator>
 #include <utility>
 #include <type_traits>
+#include <complex>
 #include "mpi.h"
-#include "mpi_type.h"
+#include "mpi_extra.h"
 
 #ifndef NOT_AIMOS
     #include "clockcycle.h"
@@ -71,27 +72,4 @@ template <typename T>
 void print_vec(const std::vector<T> &vec) {
     std::copy(vec.begin(), vec.end(), std::ostream_iterator<T>(std::cout," "));
     std::cout << std::flush;
-}
-
-template <typename T> 
-void MPI_Send_vec(const std::vector<T> &src, int dst_rank) {
-
-        MPI_Datatype mpi_type = get_mpi_type<T>();
-
-        int i = src.size();
-        MPI_Send(&i, 1, mpi_type, dst_rank, 0, MPI_COMM_WORLD);
-        MPI_Send(&src[0], src.size(), mpi_type, dst_rank, 0, MPI_COMM_WORLD);
-}
-
-template <typename T> 
-void MPI_Recv_vec(std::vector<T> &dst, int src_rank) {
-
-        MPI_Datatype mpi_type = get_mpi_type<T>();
-        MPI_Status status;
-
-        int size;
-        MPI_Recv(&size, 1, mpi_type, src_rank, 0, MPI_COMM_WORLD, &status);
-        dst.resize(size);
-
-        MPI_Recv(&dst[0], size, mpi_type, src_rank, 0, MPI_COMM_WORLD, &status);
 }
