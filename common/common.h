@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdlib>
 #include <cstdint>
+#include <cctype>
 #include <algorithm>
 #include <iterator>
 #include <utility>
@@ -28,7 +29,7 @@ int get_line(std::string &new_line, char* buffer, int buffer_size, int offset) {
     if (offset >= buffer_size) return -1;
 
     for (int i = offset; i < buffer_size; i++) {
-        if (buffer[i] == '\n') {
+        if (buffer[i] == '\n' || buffer[i] == '\r') {
             return offset + new_line.size() + 1;
         } else new_line += buffer[i];
     }
@@ -47,6 +48,23 @@ ParitionData partition(int total_size, int rank, int size) {
     data.start = rank * data.size_per_rank;
     data.end = (data.start + data.size_per_rank) < total_size ? data.start + data.size_per_rank : total_size;
     return data;
+}
+
+template <typename T>
+void print_array(T const * array, const int size) {
+    for (int i = 0; i < size; i++) std::cout << array[i] << " ";
+    std::cout << std::flush;
+}
+
+template <typename T>
+void print_array_2d(T const * array, const int rows, const int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            std::cout << array[i * cols + j] << " ";
+        }
+        std::cout << std::endl;
+    }     
+    std::cout << std::flush;
 }
 
 template <typename T>

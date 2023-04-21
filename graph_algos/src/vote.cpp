@@ -1,8 +1,8 @@
 #include "common.h"
 
-#define FIRST_LINE_BUFFER_SIZE 1024
+#define FIRST_LINE_BUFFER_SIZE 256
 #define BUFFER_SIZE 10000
-#define OVERLAP_MULTIPLIER 2
+#define OVERLAP_MULTIPLIER 10
 
 std::vector<int> tokenize_line(const std::string &line, char delimitier);
 
@@ -58,11 +58,13 @@ int main(int argc, char** argv) {
     const int overlap_size = OVERLAP_MULTIPLIER * (candidate_count * std::to_string(candidate_count).length());
     file_size -= first_line_size;
     auto [bytes_per_rank, start_byte, end_byte] = partition(file_size, rank, size);
-    start_byte += first_line_size;
+    // start_byte += first_line_size;
+    start_byte = start_byte + first_line_size < file_size ? start_byte + first_line_size : file_size;
     end_byte = end_byte + overlap_size < file_size ? end_byte + first_line_size + overlap_size : file_size + first_line_size;
 
     // Collect all the data from the file.
     int buffer_size = end_byte - start_byte; 
+    // printf("rank %d start_byte %d end_byte %d buffer size %d\n", rank, start_byte, end_byte, buffer_size);
     char* buffer = new char[buffer_size]();
     MPI_File_read_at_all(fh, start_byte, buffer, buffer_size, MPI_CHAR, &status);
 
@@ -81,7 +83,7 @@ int main(int argc, char** argv) {
 
 
     // Very important to sort voters.
-    std::sort(voters.begin(), voters.end());
+    // std::sort(voters.begin(), voters.end());
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Find distinct voters per rank.
@@ -103,29 +105,97 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Create graph
-    std::vector<std::vector<int>> graph(candidate_count, std::vector<int>(candidate_count, 0));
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Create rank only graph
+    int graph_size = candidate_count * candidate_count;
+    int *graph = new int[graph_size]();
     for (auto voter : voter_diff) {
         std::vector<int> candidates = data[voter];
-        std::cout << voter << ": ";
-        print_vec(candidates);
-        std::cout << std::endl;
+        
+        // std::cout << voter << ": ";
+        // print_vec(candidates);
+        // std::cout << std::endl;
 
         for (int i = 0; i < candidates.size(); i++) {
             for (int j = i + 1; j < candidates.size(); j++) {
-                graph[candidates[i] - 1][candidates[j] - 1]++;
+                int row = candidates[i] - 1;
+                int col = candidates[j] - 1;
+                graph[row * candidate_count + col]++;
             }
         }
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Create final graph using reduction. 
+    int* final_graph = new int[graph_size]();
+    MPI_Reduce(graph, final_graph, graph_size, get_mpi_type<int>(), MPI_SUM, 0, MPI_COMM_WORLD);
+    delete [] graph;
+
+    // Compute candidate listing using final graph.
     if (rank == 0) {
-        print_vec(voter_diff);
+        print_array_2d(final_graph, candidate_count, candidate_count);
         std::cout << std::endl;
-        for (const auto &row : graph) {
-            print_vec(row);
-            std::cout << std::endl;
+
+
+
+        int* strength_graph = new int[graph_size]();
+
+
+        for (int i = 0; i < candidate_count; i++) {
+            for (int j = 0; j < candidate_count; j++) {
+                if (i != j) {
+                    if (final_graph[i * candidate_count + j] > final_graph[j * candidate_count + i]) {
+                        strength_graph[i * candidate_count + j] = final_graph[i * candidate_count + j];
+                    } else {
+                        strength_graph[i * candidate_count + j] = 0;
+                    }
+                }
+            }
         }
+
+        for (int i = 0; i < candidate_count; i++) {
+            for (int j = 0; j < candidate_count; j++) {
+                if (i != j) {
+                    for (int k = 0; k < candidate_count; k++) {
+                        if (i != k && j != k) {
+                            strength_graph[j * candidate_count + k] = std::max(strength_graph[j * candidate_count + k],
+                                                                            std::min(strength_graph[j * candidate_count + i],
+                                                                                        strength_graph[i * candidate_count + k]));
+                        }
+                    }
+                }
+            }
+        }
+
+        print_array_2d(strength_graph, candidate_count, candidate_count);
+        std::cout << std::endl;
+
+        std::vector<std::pair<int, int>> ranking;
+        for (int i = 0; i < candidate_count; i++) {
+            int count = 0;
+            for (int j = 0; j < candidate_count; j++) {
+                if (i != j) {
+                    if (strength_graph[i * candidate_count + j] > strength_graph[j * candidate_count + i]) count++;
+                }
+            }
+            ranking.push_back(std::make_pair(i, count));
+        }
+
+        std::sort(ranking.begin(), ranking.end(), [](auto& a, auto& b) { return a.second > b.second; });
+        for (auto [candidate, _] : ranking) {
+            std::cout << candidate + 1 << " ";
+        }
+        std::cout << std::endl;
+        delete [] strength_graph;
     }
+
+
+
+
+
+    delete [] final_graph;
 
 
     MPI_File_close(&fh);
