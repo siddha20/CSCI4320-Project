@@ -1,3 +1,4 @@
+#include <vector>
 #include "common.h"
 
 typedef std::vector<std::vector<char>> matrix;

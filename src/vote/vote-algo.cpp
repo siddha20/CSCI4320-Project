@@ -1,3 +1,9 @@
+#include <map>
+#include <algorithm>
+#include <utility>
+#include <string>
+#include <vector>
+#include <iostream>
 #include "common.h"
 
 #define FIRST_LINE_BUFFER_SIZE 256
@@ -16,7 +22,7 @@ struct RankInfo {
 std::vector<int> tokenize_line(const std::string &line, char delimitier);
 
 void read_first_line(MPI_File fh, RankInfo &rank_info);
-void get_start_and_end_bytes(const RankInfo &rank_info, int &start_byte, int &end_byte);
+void get_start_and_end_bytes(const RankInfo &rank_info, size_t &start_byte, size_t &end_byte);
 
 int main(int argc, char** argv) {
 
@@ -48,11 +54,11 @@ int main(int argc, char** argv) {
     read_first_line(fh, rank_info);
 
     // Calculate start and end bytes.
-    int start_byte, end_byte;
+    size_t start_byte, end_byte;
     get_start_and_end_bytes(rank_info, start_byte, end_byte);
 
     // Collect all the data from the file.
-    int buffer_size = end_byte - start_byte; 
+    size_t buffer_size = end_byte - start_byte; 
     // printf("rank %d start_byte %d end_byte %d buffer size %d\n", rank, start_byte, end_byte, buffer_size);
     char* buffer = new char[buffer_size]();
     MPI_File_read_at_all(fh, start_byte, buffer, buffer_size, MPI_CHAR, &status);
@@ -209,10 +215,10 @@ void read_first_line(MPI_File fh, RankInfo &rank_info) {
 }
 
 
-void get_start_and_end_bytes(const RankInfo &rank_info, int &start_byte, int &end_byte) {
+void get_start_and_end_bytes(const RankInfo &rank_info, size_t &start_byte, size_t &end_byte) {
 
     const int overlap_size = OVERLAP_MULTIPLIER * (rank_info.candidate_count * std::to_string(rank_info.candidate_count).length());
-    int file_size = rank_info.file_size - rank_info.first_line_size;
+    size_t file_size = rank_info.file_size - rank_info.first_line_size;
     auto [bytes_per_rank, l_start_byte, l_end_byte] = partition(file_size, rank_info.rank, rank_info.size);
     // start_byte += rank_info.first_line_size;
     start_byte = l_start_byte + rank_info.first_line_size < file_size ? l_start_byte + rank_info.first_line_size : file_size;

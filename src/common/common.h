@@ -1,17 +1,7 @@
 #pragma once
-#include <vector>
-#include <iostream>
-#include <string>
-#include <cstdlib>
-#include <cstdint>
-#include <cctype>
-#include <algorithm>
-#include <iterator>
-#include <utility>
-#include <type_traits>
-#include <complex>
 #include <assert.h>
-#include <map>
+#include <iterator>
+#include <vector>
 #include "mpi.h"
 #include "mpi-extra.h"
 
@@ -40,12 +30,12 @@ int get_line(std::string &new_line, char* buffer, int buffer_size, int offset) {
 }
 
 struct ParitionData {
-    int size_per_rank;
-    int start;
-    int end;
+    size_t size_per_rank;
+    size_t start;
+    size_t end;
 };
 
-ParitionData partition(int total_size, int rank, int size) {
+ParitionData partition(size_t total_size, size_t rank, size_t size) {
     ParitionData data;
     data.size_per_rank = (total_size/size) + ((total_size % size) != 0);
     data.start = rank * data.size_per_rank;
@@ -54,13 +44,13 @@ ParitionData partition(int total_size, int rank, int size) {
 }
 
 template <typename T>
-void print_array(T const * array, const int size) {
+void print_array(T const * array, const size_t size) {
     for (int i = 0; i < size; i++) std::cout << array[i] << " ";
     std::cout << std::flush;
 }
 
 template <typename T>
-void print_array_2d(T const * array, const int rows, const int cols) {
+void print_array_2d(T const * array, const size_t rows, const size_t cols) {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             std::cout << array[i * cols + j] << " ";
@@ -77,7 +67,7 @@ void print_vec(const std::vector<T> &vec) {
 }
 
 template <typename T>
-void print_vec_2d(const std::vector<T> &vec, const int rows, const int cols) {
+void print_vec_2d(const std::vector<T> &vec, const size_t rows, const size_t cols) {
     for (int i = 0; i < rows; i++) {
         std::copy(vec.begin() + (i * cols), vec.begin() + (i * cols) + cols, std::ostream_iterator<T>(std::cout," "));
         std::cout << std::endl;

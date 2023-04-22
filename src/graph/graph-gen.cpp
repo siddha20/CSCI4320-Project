@@ -1,3 +1,5 @@
+#include <iostream>
+#include <string>
 #include "common.h"
 
 void create_graph_file(const std::string &filename, int rank, int size, int node_count, double p);
