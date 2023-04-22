@@ -3,56 +3,34 @@
 #include <iostream>
 #include <numeric>
 #include "common.h"
+#include "distribution.h"
 
+using namespace probability;
 
-// struct DistFact : public Distribution {
+class Uniform : public Distribution {
 
-//     DistFact() = default;
-    
-//     static create(const std::string &dist_type) {
-//         if (dist_type == "UNIFORM") {
-
-//         }
-//     }
-
-// };
-
-struct Distribution {
-    size_t size;
-    std::vector<double> dist;
-    std::vector<double> c_dist;
-
-    Distribution() = default;
-
-    size_t get_index(double f1) const {
-        for (int i = 0; i < c_dist.size(); i++) {
-            if (f1 <= c_dist[i]) return i;
+    public:
+        Uniform() = default;
+        Uniform(size_t size) {
+            this->size = size;
+            dist = std::vector<double>(size, 1.0/size);
+            c_dist = std::vector<double>(size);
+            std::partial_sum(dist.begin(), dist.end(), c_dist.begin());
         }
-        return c_dist.size() - 1;
-    }
-};
-
-struct Uniform : public Distribution {
-
-    Uniform() = default;
-    Uniform(size_t size) {
-        this->size = size;
-        dist = std::vector<double>(size, 1.0/size);
-        c_dist = std::vector<double>(size);
-        std::partial_sum(dist.begin(), dist.end(), c_dist.begin());
-    }
 };
 
 
-struct FullBias : public Distribution {
-    FullBias () = default;
-    FullBias(size_t size, size_t index) {
-        this->size = size;
-        dist = std::vector<double>(size);
-        c_dist = std::vector<double>(size);
-        dist[index] = 1.0;
-        std::partial_sum(dist.begin(), dist.end(), c_dist.begin());
-    }
+class FullBias : public Distribution {
+
+    public:
+        FullBias () = default;
+        FullBias(size_t size, size_t index) {
+            this->size = size;
+            dist = std::vector<double>(size);
+            c_dist = std::vector<double>(size);
+            dist[index] = 1.0;
+            std::partial_sum(dist.begin(), dist.end(), c_dist.begin());
+        }
 };
 
 void uniform_test();
@@ -84,10 +62,10 @@ int main(int argc, char** argv) {
 
     std::srand(1230128093 + rank << 2);
 
-    // Distribution dist = Uniform(candidate_count);
+    Distribution dist = Uniform(candidate_count);
 
     // Candidate 5 is always preferred 
-    Distribution dist = FullBias(candidate_count, 5 - 1);
+    // Distribution dist = FullBias(candidate_count, 5 - 1);
 
 
     if (device_type == "CPU" ) create_vote_file(filename, rank, size, vote_count, dist);
@@ -107,7 +85,7 @@ int main(int argc, char** argv) {
 /* Uses Fisher-Yates shuffle algorithm: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle */
 std::string create_random_permutation(const Distribution &dist) {
 
-    size_t permutation_size = dist.size;
+    size_t permutation_size = dist.get_size();
     std::string output = "";
     int map[permutation_size];
     for (int i = 1; i <= permutation_size; i++) map[i-1] = i;
@@ -138,7 +116,7 @@ void create_vote_file(const std::string &filename, int rank, int size, int vote_
 
     const auto [votes_per_rank, start_voter_id, end_voter_id] = partition(vote_count, rank, size);
 
-    size_t candidate_count = dist.size;
+    size_t candidate_count = dist.get_size();
 
     // Create votes
     std::string vote_buffer = "";

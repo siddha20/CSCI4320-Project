@@ -18,6 +18,10 @@ add_library(crypto STATIC
     src/crypto/ctrmode.cpp
     src/crypto/rijndael.cpp
 )
+add_library(probability STATIC
+    src/probability/distribution.cpp
+    src/probability/distribution.h
+)
 
 add_executable(celeb src/celeb/celeb.cpp)
 add_executable(vote-algo src/vote/vote-algo.cpp)
@@ -39,8 +43,8 @@ set_target_properties( ${TARGETS}
 
 
 foreach (TARGET IN ITEMS ${TARGETS})
-    target_include_directories(${TARGET} PRIVATE src/common)
-    target_link_libraries(${TARGET} PRIVATE MPI::MPI_CXX crypto)
+    target_include_directories(${TARGET} PRIVATE src/common src/probability)
+    target_link_libraries(${TARGET} PRIVATE MPI::MPI_CXX crypto probability)
 
     set_target_properties(${TARGET} PROPERTIES
         CXX_STANDARD 17
