@@ -18,19 +18,19 @@ all: $(BIN_DIR)/celeb $(BIN_DIR)/vote-gen $(BIN_DIR)/vote-algo $(BIN_DIR)/graph-
 
 $(BIN_DIR)/graph-gen: $(BUILD_DIR)/src/graph/graph-gen.cpp.o $(BUILD_DIR)/src/graph/graph-gen.cu.o
 	mkdir -p $(BIN_DIR)
-	$(MPICXX) $^ -o  $(BIN_DIR)/$@ $(LINK_FLAGS)
+	$(MPICXX) $^ -o  $@ $(LINK_FLAGS)
 
 $(BIN_DIR)/celeb: $(BUILD_DIR)/src/celeb/celeb.cpp.o
 	mkdir -p $(BIN_DIR)
-	$(MPICXX) $^ -o  $(BIN_DIR)/$@
+	$(MPICXX) $^ -o  $@
 
 $(BIN_DIR)/vote-gen: $(BUILD_DIR)/src/vote/vote-gen.cpp.o
 	mkdir -p $(BIN_DIR)
-	$(MPICXX) $^ -o $(BIN_DIR)/$@
+	$(MPICXX) $^ -o $@
 
 $(BIN_DIR)/vote-algo: $(BUILD_DIR)/src/vote/vote-algo.cpp.o
 	mkdir -p $(BIN_DIR)
-	$(MPICXX) $^ -o $(BIN_DIR)/$@
+	$(MPICXX) $^ -o $@
 
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	mkdir -p $(dir $@)
@@ -45,3 +45,4 @@ $(BUILD_DIR)/%.cu.o: %.cu
 .PHONY: clean
 clean:
 	rm -r $(BUILD_DIR)
+	rm -r $(BIN_DIR)

@@ -124,7 +124,8 @@ int main(int argc, char** argv) {
         print_array_2d(final_graph, c, c);
         std::cout << std::endl;
 
-        int* strength_graph = new int[graph_size]();
+        // int* strength_graph = new int[graph_size]();
+        std::vector<int> strength_graph(graph_size, 0);
 
         for (int i = 0; i < c; i++) {
             for (int j = 0; j < c; j++) {
@@ -153,7 +154,7 @@ int main(int argc, char** argv) {
         }
 
         std::cout << "Strength graph: " << std::endl;
-        print_array_2d(strength_graph, c, c);
+        print_vec_2d(strength_graph, c, c);
         std::cout << std::endl;
 
         std::vector<std::pair<int, int>> ranking;
@@ -173,7 +174,7 @@ int main(int argc, char** argv) {
             std::cout << candidate + 1 << " ";
         }
         std::cout << std::endl;
-        delete [] strength_graph;
+        // delete [] strength_graph;
     }
 
     delete [] final_graph;

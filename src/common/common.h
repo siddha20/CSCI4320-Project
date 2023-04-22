@@ -10,6 +10,7 @@
 #include <utility>
 #include <type_traits>
 #include <complex>
+#include <assert.h>
 #include "mpi.h"
 #include "mpi-extra.h"
 
@@ -71,5 +72,14 @@ void print_array_2d(T const * array, const int rows, const int cols) {
 template <typename T>
 void print_vec(const std::vector<T> &vec) {
     std::copy(vec.begin(), vec.end(), std::ostream_iterator<T>(std::cout," "));
+    std::cout << std::flush;
+}
+
+template <typename T>
+void print_vec_2d(const std::vector<T> &vec, const int rows, const int cols) {
+    for (int i = 0; i < rows; i++) {
+        std::copy(vec.begin() + (i * cols), vec.begin() + (i * cols) + cols, std::ostream_iterator<T>(std::cout," "));
+        std::cout << std::endl;
+    }
     std::cout << std::flush;
 }
