@@ -12,9 +12,9 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
 endif()
 
 add_library(crypto STATIC
-    src/cryptompi.cpp
-    src/ctrmode.cpp
-    src/rijndael.cpp
+    src/crypto/cryptompi.cpp
+    src/crypto/ctrmode.cpp
+    src/crypto/rijndael.cpp
 )
 
 add_executable(celeb src/celeb/celeb.cpp)
