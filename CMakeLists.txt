@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.20 )
+cmake_minimum_required(VERSION 3.18 )
 
 project(final-project LANGUAGES CXX CUDA)
 
-set(${CMAKE_CXX_STANDARD} 17)
-set(${CMAKE_CXX_STANDARD_REQUIRED} ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(MPI REQUIRED)
 
@@ -37,8 +37,13 @@ set_target_properties( ${TARGETS}
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+
 foreach (TARGET IN ITEMS ${TARGETS})
     target_include_directories(${TARGET} PRIVATE src/common)
     target_link_libraries(${TARGET} PRIVATE MPI::MPI_CXX crypto)
-    
+
+    set_target_properties(${TARGET} PROPERTIES
+        CXX_STANDARD 17
+        CXX_STANDARD_REQUIRED ON
+    )
 endforeach()

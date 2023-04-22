@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <complex>
 #include <assert.h>
+#include <map>
 #include "mpi.h"
 #include "mpi-extra.h"
 
