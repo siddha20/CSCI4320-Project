@@ -84,7 +84,6 @@ void create_vote_file(const std::string &filename, int rank, int size, int vote_
     size_t buf_size = vote_buffer.size();
     MPI_Allgather(&buf_size, 1, MPI_INT, cur_pos, 1, MPI_INT, MPI_COMM_WORLD);
     for (int i = 1; i < size; i++) cur_pos[i] += cur_pos[i-1];
-    std::cout << rank << " " << cur_pos[rank - 1] << " " << buf_size << std::endl;
 
     // Write edges to file
     if (rank == 0) MPI_File_seek(fh, 0, MPI_SEEK_SET);
