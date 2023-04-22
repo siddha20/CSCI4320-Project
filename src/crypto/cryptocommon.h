@@ -30,7 +30,7 @@ inline matrix_t MatrixTranspose(const matrix_t &matrix)
     return result;
 }
 
-inline matrix_t BufToMatrix(const u8 *buf, size_t size, size_t rows, size_t rowSize)
+inline matrix_t BufToMatrix(const u8 *buf, size_t size, size_t rows, size_t rowSize=0)
 {
     assert(size > 0 && rows > 0);
     matrix_t m;

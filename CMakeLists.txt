@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20 )
 
-project(final-project LANGUAGES CXX C CUDA)
+project(final-project LANGUAGES CXX CUDA)
 
 set(${CMAKE_CXX_STANDARD} 17)
 set(${CMAKE_CXX_STANDARD_REQUIRED} ON)
@@ -8,8 +8,10 @@ set(${CMAKE_CXX_STANDARD_REQUIRED} ON)
 find_package(MPI REQUIRED)
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
-    add_compile_definitions(-DNOT_AIMOS)
+    add_compile_definitions(NOT_AIMOS)
 endif()
+
+
 
 add_library(crypto STATIC
     src/crypto/cryptompi.cpp
@@ -26,7 +28,17 @@ add_executable(graph-gen
     src/graph/graph-gen.cu
 )
 
-foreach (TARGET IN ITEMS celeb vote-algo vote-gen)
+set(TARGETS celeb vote-algo vote-gen graph-gen)
+
+set_target_properties( ${TARGETS}
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+foreach (TARGET IN ITEMS ${TARGETS})
     target_include_directories(${TARGET} PRIVATE src/common)
-    target_link_libraries(${TARGET} PRIVATE MPI crypto)
+    target_link_libraries(${TARGET} PRIVATE MPI::MPI_CXX crypto)
+    
 endforeach()

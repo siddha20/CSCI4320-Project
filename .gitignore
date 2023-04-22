@@ -1,6 +1,7 @@
 *.out
-bin
+bin/
 *.o
 *.txt
 !CMakeLists.txt
-data
+data/
+build/
