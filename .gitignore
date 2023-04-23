@@ -5,3 +5,5 @@ bin/
 !CMakeLists.txt
 data/
 build/
+aimos/output/
+aimos/slurm/

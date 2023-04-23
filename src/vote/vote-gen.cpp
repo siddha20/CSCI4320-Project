@@ -49,13 +49,13 @@ int main(int argc, char** argv) {
 
     std::srand(1230128093 + rank << 2);
 
-    Timer t1 = Timer("file creation");
+    Timer t1 = Timer(std::to_string(size) + ":" + "total_time");
 
     t1.start();
     create_vote_file(filename, rank, size, vote_count, dist);
     t1.end();
 
-    if (rank == 0) t1.print_duration_sec();
+    if (rank == 0) t1.print_duration_cycles_label_only();
 
     MPI_Finalize();
 
@@ -103,10 +103,16 @@ void create_vote_file(const std::string &filename, int rank, int size, int vote_
     std::string vote_buffer = "";
     if (rank == 0) vote_buffer = std::to_string(vote_count) + ":" + std::to_string(candidate_count) + "\n";
 
+    Timer t2 = Timer(std::to_string(size) + ":" + "permutation_create_time");
+
+    t2.start();
     for (int i = start_voter_id; i < end_voter_id; i++) {
         std::string vote_sequence = create_random_permutation(dist);
         vote_buffer += std::to_string(i) + ":" + vote_sequence + "\n";
     }
+    t2.end();
+
+    if (rank == 0) t2.print_duration_cycles_label_only();
 
     MPI_Barrier(MPI_COMM_WORLD);
 

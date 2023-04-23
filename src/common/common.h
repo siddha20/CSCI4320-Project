@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <iterator>
 #include <vector>
+#include <iostream>
 #include "mpi.h"
 #include "mpi-extra.h"
 
@@ -15,7 +16,6 @@
     #define CLOCK_FREQ 1
 #endif
 
-
 struct ParitionData {
     size_t size_per_rank;
     size_t start;
@@ -24,8 +24,8 @@ struct ParitionData {
 
 class Timer {
     private:
-        int start_cycles = 0;
-        int end_cycles = 0;
+        unsigned long long start_cycles = 0;
+        unsigned long long end_cycles = 0;
         std::string label;
 
         double get_duration_sec() {
@@ -50,7 +50,7 @@ class Timer {
 
         void print_duration_sec() {
             if (label.size() == 0) {
-            std::cout << "Completed in " << this->get_duration_sec() << "s." << std::endl;
+                std::cout << "Completed in " << this->get_duration_sec() << "s." << std::endl;
             }
             else {
                 std::cout << "Completed " << label << " in " << this->get_duration_sec() << "s." << std::endl;
@@ -59,11 +59,19 @@ class Timer {
 
         void print_duration_cycles() {
             if (label.size() == 0) {
-            std::cout << "Completed in " << this->get_duration_cycles() << " cycles." << std::endl;
+                std::cout << "Completed in " << this->get_duration_cycles() << " cycles." << std::endl;
             }
             else {
                 std::cout << "Completed " << label << " in " << this->get_duration_cycles() << " cycles." << std::endl;
             }
+        }
+
+        void print_duration_sec_label_only() {
+            std::cout << label << " " << this->get_duration_sec() << " (seconds)" << std::endl;
+        }
+
+        void print_duration_cycles_label_only() {
+            std::cout << label << " " << this->get_duration_cycles() << " (cycles)" << std::endl;
         }
 };
 
