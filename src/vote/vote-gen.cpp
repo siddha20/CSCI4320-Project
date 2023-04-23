@@ -3,35 +3,9 @@
 #include <iostream>
 #include <numeric>
 #include "common.h"
-#include "distribution.h"
+#include "probability.h"
 
 using namespace probability;
-
-class Uniform : public Distribution {
-
-    public:
-        Uniform() = default;
-        Uniform(size_t size) {
-            this->size = size;
-            dist = std::vector<double>(size, 1.0/size);
-            c_dist = std::vector<double>(size);
-            std::partial_sum(dist.begin(), dist.end(), c_dist.begin());
-        }
-};
-
-
-class FullBias : public Distribution {
-
-    public:
-        FullBias () = default;
-        FullBias(size_t size, size_t index) {
-            this->size = size;
-            dist = std::vector<double>(size);
-            c_dist = std::vector<double>(size);
-            dist[index] = 1.0;
-            std::partial_sum(dist.begin(), dist.end(), c_dist.begin());
-        }
-};
 
 void uniform_test();
 void create_vote_file(const std::string &filename, int rank, int size, int vote_count, const Distribution &dist);
@@ -44,16 +18,29 @@ int main(int argc, char** argv) {
     std::string filename;
     int vote_count;
     double candidate_count;
-    std::string device_type;
+    std::string distribution_type;
+    Distribution dist;
 
-    if (argc != 5) {
-        std::cerr << "Usage: vote_gen.out <filename> <vote_count> <candidate_count> <'CPU' or 'CUDA'>" << std::endl;
+    std::string usage_error = "Usage: vote_gen.out <filename> <vote_count> <candidate_count> <UNIFORM or FULLBIAS ID>";
+
+    if (argc < 5) {
+        std::cerr << usage_error << std::endl;
         return EXIT_FAILURE;
     } else {
         filename = argv[1];
         vote_count = std::stoi(argv[2]);
         candidate_count = std::stod(argv[3]);
-        device_type = argv[4];
+        distribution_type = argv[4];
+    }
+
+    if (distribution_type == "UNIFORM") {
+        dist = Uniform(candidate_count);
+    }
+    else if (argc == 6 && distribution_type == "FULLBIAS") {
+        dist = FullBias(candidate_count, std::stoi(argv[5]) - 1);
+    }
+    else {
+        std::cerr << usage_error << std::endl;
     }
 
     int rank, size;
@@ -62,19 +49,7 @@ int main(int argc, char** argv) {
 
     std::srand(1230128093 + rank << 2);
 
-    Distribution dist = Uniform(candidate_count);
-
-    // Candidate 5 is always preferred 
-    // Distribution dist = FullBias(candidate_count, 5 - 1);
-
-
-    if (device_type == "CPU" ) create_vote_file(filename, rank, size, vote_count, dist);
-    else if (device_type == "CUDA") std::cerr << "Error: no CUDA implementation. " << std::endl;
-    else {
-        std::cerr << "Error: did not recognize device type." << std::endl;
-        return EXIT_FAILURE;
-    }
-
+    create_vote_file(filename, rank, size, vote_count, dist);
 
     MPI_Finalize();
 

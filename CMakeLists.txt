@@ -20,7 +20,9 @@ add_library(crypto STATIC
 )
 add_library(probability STATIC
     src/probability/distribution.cpp
-    src/probability/distribution.h
+    src/probability/uniform.cpp
+    src/probability/fullbias.cpp
+    src/probability/custom.cpp
 )
 
 add_executable(celeb src/celeb/celeb.cpp)
