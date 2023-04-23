@@ -49,7 +49,13 @@ int main(int argc, char** argv) {
 
     std::srand(1230128093 + rank << 2);
 
+    Timer t1 = Timer("file creation");
+
+    t1.start();
     create_vote_file(filename, rank, size, vote_count, dist);
+    t1.end();
+
+    if (rank == 0) t1.print_duration_sec();
 
     MPI_Finalize();
 

@@ -11,8 +11,61 @@
 #endif
 
 #ifdef NOT_AIMOS
-    auto clock_now = []{ return 0; };
+    auto clock_now = []{ return 123; };
+    #define CLOCK_FREQ 1
 #endif
+
+
+struct ParitionData {
+    size_t size_per_rank;
+    size_t start;
+    size_t end;
+};
+
+class Timer {
+    private:
+        int start_cycles = 0;
+        int end_cycles = 0;
+        std::string label;
+
+        double get_duration_sec() {
+            return ((double)(end_cycles - start_cycles))/CLOCK_FREQ;
+        }
+
+        double get_duration_cycles() {
+            return end_cycles - start_cycles;
+        }
+
+    public:
+        Timer() = default;
+        Timer(const std::string &label) : label(label) {}
+
+        void start() {
+            start_cycles = clock_now();
+        }
+
+        void end() {
+            end_cycles = clock_now();
+        }
+
+        void print_duration_sec() {
+            if (label.size() == 0) {
+            std::cout << "Completed in " << this->get_duration_sec() << "s." << std::endl;
+            }
+            else {
+                std::cout << "Completed " << label << " in " << this->get_duration_sec() << "s." << std::endl;
+            }
+        }
+
+        void print_duration_cycles() {
+            if (label.size() == 0) {
+            std::cout << "Completed in " << this->get_duration_cycles() << " cycles." << std::endl;
+            }
+            else {
+                std::cout << "Completed " << label << " in " << this->get_duration_cycles() << " cycles." << std::endl;
+            }
+        }
+};
 
 int get_line(std::string &new_line, char* buffer, int buffer_size, int offset) {
 
@@ -28,12 +81,6 @@ int get_line(std::string &new_line, char* buffer, int buffer_size, int offset) {
     }
     return offset + new_line.size() + 1;
 }
-
-struct ParitionData {
-    size_t size_per_rank;
-    size_t start;
-    size_t end;
-};
 
 ParitionData partition(size_t total_size, size_t rank, size_t size) {
     ParitionData data;
