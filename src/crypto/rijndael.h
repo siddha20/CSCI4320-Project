@@ -43,7 +43,7 @@ private:
     static buf_t &SubWord(buf_t &buf);
     static buf_t &Xor(buf_t &a, const buf_t &b);
     static u8 LookupSbox(u8 x, const u8 sbox[16][16]);
-    static u8 GFMul(u8 a, u8 b);
+    static u8 xtime(u8 &x) { return (x = (x & 0x80) ? ((x << 1) ^ 0x1b) : (x << 1)); }
 
     static const Configuration s_cfgs[3];
     static const u8 s_sbox[16][16];

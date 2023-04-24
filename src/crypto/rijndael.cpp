@@ -112,14 +112,14 @@ void Rijndael::SubBytes(matrix_t &state, const u8 sbox[16][16])
 
 void Rijndael::ShiftRows(matrix_t &state)
 {
-    // TODO: Make more efficient w/o transpose lol
-    state = MatrixTranspose(state);
     for (size_t i = 1; i < state.size(); ++i)
     {
         for (size_t j = 0; j < i; ++j)
-            RotWord(state[i]);
+        {
+            for (size_t k = 0; k < state[i].size() - 1; ++k)
+                std::swap(state[k][i], state[k + 1][i]);
+        }
     }
-    state = MatrixTranspose(state);
 }
 
 void Rijndael::MixColumns(matrix_t &state)
@@ -127,21 +127,24 @@ void Rijndael::MixColumns(matrix_t &state)
     for (size_t i = 0; i < state.size(); ++i)
     {
         assert(m_cfg->Nb == 4 && state[i].size() == (size_t)m_cfg->Nb);
-        u8 s0 = GFMul(2, state[i][0]) ^ GFMul(3, state[i][1]) ^ state[i][2] ^ state[i][3];
-        u8 s1 = state[i][0] ^ GFMul(2, state[i][1]) ^ GFMul(3, state[i][2]) ^ state[i][3];
-        u8 s2 = state[i][0] ^ state[i][1] ^ GFMul(2, state[i][2]) ^ GFMul(3, state[i][3]);
-        u8 s3 = GFMul(3, state[i][0]) ^ state[i][1] ^ state[i][2] ^ GFMul(2, state[i][3]);
-        state[i][0] = s0;
-        state[i][1] = s1;
-        state[i][2] = s2;
-        state[i][3] = s3;
+        u8 a = state[i][0];
+        u8 c = a ^ state[i][1];
+        u8 b = c ^ state[i][2] ^ state[i][3];
+        state[i][0] ^= xtime(c) ^ b;
+
+        c = state[i][1] ^ state[i][2];
+        state[i][1] ^= xtime(c) ^ b;
+
+        c = state[i][2] ^ state[i][3];
+        state[i][2] ^= xtime(c) ^ b;
+
+        c = state[i][3] ^ a;
+        state[i][3] ^= xtime(c) ^ b;
     }
 }
 
 buf_t &Rijndael::RotWord(buf_t &buf)
 {
-    if (buf.size() < 2)
-        return buf;
     for (size_t i = 0; i < buf.size() - 1; ++i)
         std::swap(buf[i], buf[i + 1]);
     return buf;
@@ -169,19 +172,4 @@ u8 Rijndael::LookupSbox(u8 x, const u8 sbox[16][16])
     return sbox[hi][lo];
 }
 
-u8 Rijndael::GFMul(u8 a, u8 b)
-{
-    u8 poly = 0;
-    for (i32 i = 0; i < 8; ++i)
-    {
-        if (b & 1)
-            poly ^= a;
-        bool hi = (a & 0x80) != 0;
-        a <<= 1;
-        if (hi)
-            a ^= 0x1b; // x^8 + x^4 + x^3 + x + 1
-        b >>= 1;
-    }
-    return poly;
-}
 }

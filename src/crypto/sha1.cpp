@@ -4,15 +4,15 @@
 
 namespace crypto
 {
-buf_t Sha1::ComputeDigest(const buf_t &b)
+void Sha1::ComputeDigest(const u8 *b, size_t size, u8 (&digest)[20])
 {
-    assert(!b.empty());
-    if (b.empty())
-        return buf_t();
+    assert(size != 0);
+    if (!size)
+        return;
         
-    u64 bits = (u64)(b.size() * 8);
-    u32 chnk = (u32)((b.size() + 8) / 64 + 1);
-    u32 tl = (u32)(64 * chnk - b.size());
+    u64 bits = (u64)(size * 8);
+    u32 chnk = (u32)((size + 8) / 64 + 1);
+    u32 tl = (u32)(64 * chnk - size);
     u8 t[128] = { 0x80 };
     for (i32 i = 0; i < 8; ++i)
         t[tl - (i + 1)] = ((u8*)&bits)[i];
@@ -25,12 +25,12 @@ buf_t Sha1::ComputeDigest(const buf_t &b)
         {
             // Load words we can fit
             i32 remw = 24;
-            for (; p < b.size() && remw >= 0; ++p, remw -= 8)
+            for (; p < size && remw >= 0; ++p, remw -= 8)
                 words[w] += ((u32)b[p]) << remw;
             
             // Padding
             for (; remw >= 0; ++p, remw -= 8)
-                words[w] += ((u32)t[p - b.size()]) << remw;
+                words[w] += ((u32)t[p - size]) << remw;
         }
 
         // Extend 16 words into 32 bit words
@@ -56,13 +56,11 @@ buf_t Sha1::ComputeDigest(const buf_t &b)
     }
 
     // Get digest
-    buf_t digest(20);
     for (i32 i = 0; i < 5; ++i)
     {
         for (i32 j = 0; j < 4; ++j)
             digest[i * 4 + j] = ((const u8*)&s2[i])[3 - j];
     }
-    return digest;
 }
 
 void Sha1::Round(u32 s1[5], u32 t, u32 k, u32 w)
@@ -75,9 +73,10 @@ void Sha1::Round(u32 s1[5], u32 t, u32 k, u32 w)
     s1[0] = r;
 }
 
-bool Sha1::CompareDigests(const buf_t &b, const buf_t &d)
+bool Sha1::CompareDigests(const u8 *b, size_t size, const u8 *d)
 {
-    buf_t bd = ComputeDigest(b);
-    return bd.size() == d.size() && !memcmp(bd.data(), d.data(), bd.size());
+    u8 digest[20];
+    ComputeDigest(b, size, digest);
+    return !memcmp(b, digest, 20);
 }
 }

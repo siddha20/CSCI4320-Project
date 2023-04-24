@@ -8,6 +8,7 @@ namespace crypto
 {
 class CtrMode : private Rijndael
 {
+public:
     class Counter
     {
     public:
@@ -20,22 +21,16 @@ class CtrMode : private Rijndael
         buf_t buf;
     };
 
-public:
     CtrMode(const buf_t &iv, const buf_t &key);
 
-    // Encrypts plaintext to get the ciphertext
-    // Returns if the encrypt succeeds
-    bool Encrypt(const buf_t &pt, buf_t &ct) { return Crypt(pt, ct, m_encCtr); }
-    
-    // Decrypts ciphertext to get the plaintext
-    // Returns if the decrypt succeeds
-    bool Decrypt(const buf_t &ct, buf_t &pt) { return Crypt(ct, pt, m_decCtr); }
+    bool Crypt(const u8 *src, size_t srcLength, size_t offset, buf_t &dst);
+
+    size_t BlockSize() const { return Rijndael::BlockSize(); }
 
 private:
-    bool Crypt(const buf_t &src, buf_t &target, Counter &ctr);
+    void CryptThr(const u8 *src, size_t srcLength, u8 *dst, u32 ctrValue);
 
-    Counter m_encCtr;
-    Counter m_decCtr;
+    buf_t m_iv;
 };
 }
 

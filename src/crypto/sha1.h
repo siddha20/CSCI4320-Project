@@ -8,8 +8,8 @@ namespace crypto
 class Sha1
 {
 public:
-    static buf_t ComputeDigest(const buf_t &b);
-    static bool CompareDigests(const buf_t &b, const buf_t &d);
+    static void ComputeDigest(const u8 *b, size_t size, u8 (&digest)[20]);
+    static bool CompareDigests(const u8 *b, size_t size, const u8 *d);
 
 private:
     static u32 RotLeft(u32 x, u32 b) { return (x << b) | (x >> (32 - b)); }
