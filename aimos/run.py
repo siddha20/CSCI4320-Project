@@ -36,13 +36,13 @@ os.system(f'mkdir {data_directory}')
 
 def make_slurm_script(filename, ranks, exec_path, exec_args, exec_output):
     if (file_exists(filename)):
-        os.system(f'echo "taskset -c 0-159:4 mpirun -N {ranks} {exec_path} {exec_args} > {exec_output}"'
+        os.system(f'echo "taskset -c 0-159:4 mpirun -N {ranks} --oversubscribe {exec_path} {exec_args} > {exec_output}"'
                   f'>> {filename}')
     else:
         os.system(f'touch {filename}')
         os.system(f'echo "#!/bin/bash -x\n'
                   f'module load spectrum-mpi\n'
-                  f'taskset -c 0-159:4 mpirun -N {ranks} {exec_path} {exec_args} > {exec_output}"'
+                  f'taskset -c 0-159:4 mpirun -N {ranks} --oversubscribe {exec_path} {exec_args} > {exec_output}"'
                   f'> {filename}')
 
 def make_slurm_script_not_aimos(filename, ranks, exec_path, exec_args, exec_output):
@@ -78,7 +78,8 @@ candidate_and_vote_counts = [
     (10000000, 20),
     (50000000, 20),
     (100000000, 20),
-    # (500000000, 20),
+    (500000000, 20),
+    (1000000000, 20),
     (1000, 500),
     (1000, 5000),
     (1000, 50000)
@@ -88,7 +89,7 @@ candidate_and_vote_counts = [
 vote_gen_batch_filename = os.path.join(batch_directory, 'batch-vote-gen.sh')
 vote_gen_data_directory = os.path.join(data_directory, 'vote-gen')
 gpu_count = 1
-time_limit = 5
+time_limit = 10
 partition = 'el8-rpi'
 os.system(f'touch {vote_gen_batch_filename}')
 os.system(f'mkdir -p {vote_gen_data_directory}')
