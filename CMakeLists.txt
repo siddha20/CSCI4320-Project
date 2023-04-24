@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18 )
+cmake_minimum_required(VERSION 3.18)
 
 project(final-project LANGUAGES CXX CUDA)
 
@@ -11,13 +11,13 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
     add_compile_definitions(NOT_AIMOS)
 endif()
 
-
-
 add_library(crypto STATIC
     src/crypto/cryptompi.cpp
     src/crypto/ctrmode.cpp
     src/crypto/rijndael.cpp
+    src/crypto/sha1.cpp
 )
+
 add_library(probability STATIC
     src/probability/distribution.cpp
     src/probability/uniform.cpp
@@ -28,7 +28,6 @@ add_library(probability STATIC
 add_executable(celeb src/celeb/celeb.cpp)
 add_executable(vote-algo src/vote/vote-algo.cpp)
 add_executable(vote-gen src/vote/vote-gen.cpp)
-
 add_executable(graph-gen
     src/graph/graph-gen.cpp
     src/graph/graph-gen.cu
