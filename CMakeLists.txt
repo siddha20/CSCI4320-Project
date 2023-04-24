@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(MPI REQUIRED)
+find_package(Threads REQUIRED)
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
     add_compile_definitions(NOT_AIMOS)
@@ -42,10 +43,9 @@ set_target_properties( ${TARGETS}
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-
 foreach (TARGET IN ITEMS ${TARGETS})
     target_include_directories(${TARGET} PRIVATE src/common src/probability)
-    target_link_libraries(${TARGET} PRIVATE MPI::MPI_CXX crypto probability)
+    target_link_libraries(${TARGET} PRIVATE MPI::MPI_CXX crypto probability Threads::Threads)
 
     set_target_properties(${TARGET} PROPERTIES
         CXX_STANDARD 17
