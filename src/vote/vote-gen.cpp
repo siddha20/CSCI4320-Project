@@ -8,7 +8,7 @@
 using namespace probability;
 
 void uniform_test();
-void create_vote_file(const std::string &filename, int rank, int size, int vote_count, const Distribution &dist);
+void create_vote_file(MPI_File fh, int rank, int size, int vote_count, const Distribution &dist);
 std::string create_vote_sequence(const Distribution &dist);
 
 int main(int argc, char** argv) {
@@ -20,8 +20,9 @@ int main(int argc, char** argv) {
     double candidate_count;
     std::string distribution_type;
     Distribution dist;
+    bool delete_file = false;
 
-    std::string usage_error = "Usage: vote_gen.out <filename> <vote_count> <candidate_count> <UNIFORM or FULLBIAS ID>";
+    std::string usage_error = "Usage: vote_gen.out <filename> <vote_count> <candidate_count> <UNIFORM or FULLBIAS ID> <OPT: DELETE>";
 
     if (argc < 5) {
         std::cerr << usage_error << std::endl;
@@ -35,27 +36,47 @@ int main(int argc, char** argv) {
 
     if (distribution_type == "UNIFORM") {
         dist = Uniform(candidate_count);
+        if (argc == 6) {
+            if (std::string(argv[5]) == "DELETE") {
+                delete_file = true;
+            }
+        }
     }
-    else if (argc == 6 && distribution_type == "FULLBIAS") {
+    else if (argc >= 6 && distribution_type == "FULLBIAS") {
         dist = FullBias(candidate_count, std::stoi(argv[5]) - 1);
+        if (argc == 7) {
+            if (std::string(argv[6]) == "DELETE") {
+                delete_file = true;
+            }
+        }
     }
     else {
         std::cerr << usage_error << std::endl;
     }
 
+
+
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    MPI_File fh;
+    MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
 
     std::srand(1230128093 + rank << 2);
 
     Timer t1 = Timer(std::to_string(size) + ":" + "total_time");
 
     t1.start();
-    create_vote_file(filename, rank, size, vote_count, dist);
+    create_vote_file(fh, rank, size, vote_count, dist);
     t1.end();
 
     if (rank == 0) t1.print_duration_cycles_label_only();
+
+    if (rank == 0 && delete_file) {
+        std::cout << "delete " << filename.c_str() << std::endl;
+        std::remove(filename.c_str());
+    }
 
     MPI_Finalize();
 
@@ -89,11 +110,7 @@ std::string create_random_permutation(const Distribution &dist) {
 /* Create file containing a ton of votes. */
 /* Candidates go from 1..candidate_count, 
    voters go from 0..vote_count */
-void create_vote_file(const std::string &filename, int rank, int size, int vote_count, const Distribution &dist) {
-
-    MPI_File fh;
-    MPI_Status status;
-    MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
+void create_vote_file(MPI_File fh, int rank, int size, int vote_count, const Distribution &dist) {
 
     const auto [votes_per_rank, start_voter_id, end_voter_id] = partition(vote_count, rank, size);
 
@@ -127,7 +144,7 @@ void create_vote_file(const std::string &filename, int rank, int size, int vote_
     // Write edges to file
     if (rank == 0) MPI_File_seek(fh, 0, MPI_SEEK_SET);
     else MPI_File_seek(fh, cur_pos[rank - 1], MPI_SEEK_SET);
-    MPI_File_write_all(fh, vote_buffer.c_str(), vote_buffer.size(), MPI_CHAR, &status);
+    MPI_File_write_all(fh, vote_buffer.c_str(), vote_buffer.size(), MPI_CHAR, NULL);
 
     MPI_File_close(&fh);
 }

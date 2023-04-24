@@ -56,33 +56,42 @@ def make_slurm_script_not_aimos(filename, ranks, exec_path, exec_args, exec_outp
                   f'> {filename}')
 
 node_and_rank_counts = [
-    (1, 1),  # 1 rank
-    (1, 2),  # 2 ranks
-    (1, 4),  # 4 ranks
-    (1, 8),  # 8 ranks 
-    (1, 16), # 16 ranks
-    (1, 32), # 32 ranks
-    (2, 24), # 48 ranks
-    (2, 32), # 64 ranks
-    (3, 32), # 96 ranks
-    (4, 32), # 128 ranks
-    (5, 32), # 160 ranks
-    (6, 32), # 192 ranks
-    (7, 32), # 224 ranks
-    (8, 32)  # 256 ranks
+    (1, 1),   # 1 rank
+    (1, 2),   # 2 ranks
+    (1, 4),   # 4 ranks
+    (1, 8),   # 8 ranks 
+    (1, 16),  # 16 ranks
+    (1, 32),  # 32 ranks
+    (2, 24),  # 48 ranks
+    (2, 32),  # 64 ranks
+    (3, 32),  # 96 ranks
+    (4, 32),  # 128 ranks
+    (5, 32),  # 160 ranks
+    (6, 32),  # 192 ranks
+    (7, 32),  # 224 ranks
+    (8, 32),  # 256 ranks
+    (9, 32),  # 288 ranks
+    (10, 32), # 320 ranks
+    (11, 32), # 352 ranks
+    (12, 32), # 384 ranks
+    (13, 32), # 416 ranks
+    (14, 32), # 448 ranks
+    (15, 32), # 480 ranks
+    (16, 32)  # 512 ranks
 ]
 
 candidate_and_vote_counts = [
-    (10000, 20),
-    (1000000, 20),
-    (10000000, 20),
-    (50000000, 20),
+    # (10000, 20),
+    # (1000000, 20),
+    # (10000000, 20),
+    # (50000000, 20),
     (100000000, 20),
     (500000000, 20),
     (1000000000, 20),
-    (1000, 500),
-    (1000, 5000),
-    (1000, 50000)
+    (5000000000, 20)
+    # (1000, 500),
+    # (1000, 5000),
+    # (1000, 50000)
 ]
 
 # Create batch shell script for vote gen.
@@ -90,7 +99,7 @@ vote_gen_batch_filename = os.path.join(batch_directory, 'batch-vote-gen.sh')
 vote_gen_data_directory = os.path.join(data_directory, 'vote-gen')
 gpu_count = 1
 time_limit = 10
-partition = 'el8-rpi'
+partition = 'el8'
 os.system(f'touch {vote_gen_batch_filename}')
 os.system(f'mkdir -p {vote_gen_data_directory}')
 
@@ -121,7 +130,7 @@ for node, ranks in node_and_rank_counts:
                     f'>> {vote_gen_batch_filename}')
 
         # Set up executable stuff
-        exec_args = f'{data_file} {candidate_count} {vote_count} {dist} {dist_arg}'
+        exec_args = f'{data_file} {candidate_count} {vote_count} {dist} {dist_arg} DELETE'
         exec_output = os.path.join(vote_gen_output_dir ,vote_gen_filename)
         make_slurm_script(slurm_filename, ranks, exec_path, exec_args, exec_output)
 
