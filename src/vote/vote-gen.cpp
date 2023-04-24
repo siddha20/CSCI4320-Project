@@ -74,7 +74,6 @@ int main(int argc, char** argv) {
     if (rank == 0) t1.print_duration_cycles_label_only();
 
     if (rank == 0 && delete_file) {
-        std::cout << "delete " << filename.c_str() << std::endl;
         std::remove(filename.c_str());
     }
 

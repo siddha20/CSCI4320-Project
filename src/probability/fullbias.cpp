@@ -5,7 +5,7 @@
 
 namespace probability {
 
-FullBias::FullBias () = default;
+FullBias::FullBias() = default;
 
 FullBias::FullBias(size_t size, size_t index) {
     this->size = size;

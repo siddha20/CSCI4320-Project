@@ -1,8 +1,8 @@
 *.out
 bin/
 *.o
-*.txt
 !CMakeLists.txt
+!aimos-stats/*
 data/
 build/
 aimos/output/

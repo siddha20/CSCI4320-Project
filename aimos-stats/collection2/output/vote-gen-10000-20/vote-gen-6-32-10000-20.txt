@@ -1,0 +1,2 @@
+192:permutation_create_time 454491 (cycles)
+192:total_time 2.66712e+08 (cycles)
