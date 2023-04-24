@@ -1,0 +1,2 @@
+352:permutation_create_time 4.12875e+09 (cycles)
+352:total_time 9.05785e+09 (cycles)
