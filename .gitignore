@@ -3,7 +3,6 @@ bin/
 *.o
 !CMakeLists.txt
 !aimos-stats/*
-report/
 data/
 build/
 aimos/output/
