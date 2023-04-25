@@ -221,10 +221,10 @@ convenient for repeated access.
 
 \subsection{Vote Generation Algorithm}
 \label{Vote Generation Algorithm}
-To generate votes, we distribute the workload across several different compute
-nodes (ranks) using MPI. Also, we make use of MPI parallel I/O so each rank can
-write to a file in parallel as well. The main algorithm for this process is
-given below:
+We distribute the workload across several compute nodes (ranks) to generate
+votes using MPI. Also, we make use of MPI parallel I/O so each rank can write
+to a file in parallel as well. The main algorithm for this process is given
+below:
 \begin{algorithm}[H]
     \caption{Parallel Vote Generation}\label{alg:cap}
     \begin{algorithmic}[1]
@@ -244,7 +244,7 @@ given below:
 
 This algorithm is active in every single rank. The inputs to the algorithm are
 $rank$, $startId$, and $endId$. Different $startId$s and $endId$s are passed to
-the ranks which represent the section of votes each rank is responsible for
+the ranks, representing the section of votes each rank is responsible for
 generating and writing. They are calculated by partitioning the total number of
 voters across ranks and then carefully assigning the bounds for each rank. This
 partition can be calculated ahead of time because the total number of desired
@@ -252,14 +252,14 @@ votes is passed to the executable as an argument. The first part of the
 algorithm is to generate the vote sequence. To do this, we loop across the
 rank's assigned range (prescribed by $startId$ and $endId$) and append to
 $voteSequence$, which is a buffer that contains the vote sequences for all the
-assigned ids. Since the sizes of the buffer are not known until they are fully
-generated, the ranks need to share the buffer sizes with each other in order to
-write to the file in the correct place. Consequently, the next step is to
-accurately assign cursor positions for each rank; in parallel I/O, it is very
-important that alignment across different ranks is perfect; otherwise, you risk
-overwriting data. To achieve this, the sizes of the buffer are shared across
-all the ranks with each other and stored in $allSizes$. Using that array, we
-then generate the array $cursorPos$, which is just the cumulative sum. Finally,
+assigned ids. Since the buffer sizes are not known until they are fully
+generated, the ranks need to share the buffer sizes with each other to write to
+the file in the correct place. Consequently, the next step is to accurately
+assign cursor positions for each rank; in parallel I/O, it is very important
+that alignment across different ranks is perfect; otherwise, you risk
+overwriting data. To achieve this, the buffer sizes are shared across all the
+ranks with each other and stored in $allSizes$. Using that array, we then
+generate the array $cursorPos$, which is just the cumulative sum. Finally,
 using $cursorPos[rank]$, which is the correct cursor position for $rank$, the
 contents of the buffer ($voteSequence$) can be written to the file.
 Specifically, we use \C{MPI_File_seek} to move the file cursor and use the
@@ -273,35 +273,35 @@ MPI_File_write_all(fh, vote_sequence,
                    size, MPI_CHAR, NULL);
     \end{BVerbatim}
 \end{center}
-This is different than using independent I/O where every
-rank writes to a file independently; collective I/O mandates that all process
-are writing to a file at the same time, which allows MPI to perform certain
-optimization making it much more faster overall \cite{pacheco}. Moreover, by
-adjusting the cursor positions to distinct positions in the file allows for
-non-contiguos access, and this combined with collective I/O is one of the most
-efficient ways to concurrently write to a file \cite{ching}.
+This is different than using independent I/O, where every rank writes to a file
+independently; collective I/O mandates that all process are writing to a file
+at the same time, which allows MPI to perform certain optimizations making it
+much faster overall \cite{pacheco}. Moreover, by adjusting the cursor positions
+to distinct positions in the file allows for non-contiguous access, and this,
+combined with collective I/O, is one of the most efficient ways to concurrently
+write to a file \cite{ching}.
 
 One natural question to ask is if the parallel vote generation algorithm can be
 parallelized even further to achieve faster runtimes and generate more votes.
-The answer to that is yes, there is more oppurtunity for more parallelism in
-that algorithm, and it actually is fairly straightforward. The for loop from
-lines 2 to 4 can be parallelized because each random permutation is generated
-independent of one another. However, the fact that we are writing to a file
+The answer to that is yes, there is more opportunity for parallelism in that
+algorithm, and it is actually fairly straightforward. The for loop from lines 2
+to 4 can be parallelized because each random permutation is generated
+independently of one another. However, the fact that we are writing to a file
 means this not might not exactly be the case. We implemented a similar parallel
-algorithm in CUDA regarding random graph generation; however it ended up being
-much slower than just using MPI. The reason for this is because instead of
-keeping track of cursor positions outside the loop, cursor positions needs to
-be updated inside the loop. This critical constraint makes parallelizing the
-loop in lines 2-4 actually much more slower because it requires updating a
-shared variable writing to shared memory concurrently. However, once again, we
-brought this problem upon ourselves by making writing to a file a core rule. If
-we didn't have to write to a file, and could rely on program memory, then using
-CUDA and parallelizing the inner loop would be undoubtly faster.
+algorithm in CUDA regarding random graph generation; however, it ended up being
+much slower than just using MPI. The reason for this is that instead of keeping
+track of cursor positions outside the loop, cursor positions need to be updated
+inside the loop. This critical constraint makes parallelizing the loop in lines
+2-4 actually much slower because it requires updating a shared variable writing
+to shared memory concurrently. However, once again, we brought this problem
+upon ourselves by making writing to a file a core rule. If we didn't have to
+write to a file and could rely on program memory, then using CUDA and
+parallelizing the inner loop would be undoubtedly faster.
 
 \subsection{Results}
 \label{Results}
 Figure 1 below shows the total time for generating a vote file containing
-$m=10000$ votes, and $n=20$ candidates for 1 up to 512 ranks. Moreover, the
+$m=10000$ votes and $n=20$ candidates for 1 up to 512 ranks. Moreover, the
 runtime is the result of running the full parallel vote generation algorithm.
 \begin{center}
 \includegraphics[scale=.6]{../aimos-stats/collection1/plots/vote-gen-10000-20/total_time.png}
@@ -313,15 +313,15 @@ runtime is the result of running the full parallel vote generation algorithm.
 \end{center}
 
 Interestingly, the runtime increases as the number of ranks increases, which is
-counter to what should happen; more compute power should result in a faster
+counter to what should happen; more computing power should result in a faster
 runtime. However, that is not always the case. The number of candidates is too
 small, so the overhead of coordinating a large number of ranks to write to a
 file ends up being much more costly than just a smaller number of ranks writing
 to a file. In fact, this can be observed in the figure: at first, the run time
-dips with, but as the number of ranks increases substantially, so does the
-runtime. Figure 2 below is still for $m=10000$ and $n=20$, but instead of
-showing the total runtime, the runtime for only generating permutations is
-shown (lines 2 to 4 of the parallel vote generation algorithm).
+dips, but as the number of ranks increases substantially, so does the runtime.
+Figure 2 below is still for $m=10000$ and $n=20$, but instead of showing the
+total runtime, the runtime for only generating permutations is shown (lines 2
+to 4 of the parallel vote generation algorithm).
 \begin{center}
     \includegraphics[scale=.6]{../aimos-stats/collection1/plots/vote-gen-10000-20/permutation_create_time.png}
     \captionof{figure}{Compares the permutation generation runtime versus the number of
@@ -331,13 +331,13 @@ shown (lines 2 to 4 of the parallel vote generation algorithm).
              collected on AiMOS (DCS) supercomputer. }
 \end{center}
 
-Unlike figure 1, there is a visible decrease in runtime as the number of ranks
-increase. This is because the figure does not include the runtimes for writing
-to the files, only generating the permutations, suggeting that it is very
+Unlike Figure 1, there is a visible decrease in runtime as the number of ranks
+increases. This is because the figure does not include the runtimes for writing
+to the files, only generating the permutations, suggesting that it is very
 relatively expensive to collectively call MPI write operations for all ranks.
-However, as the number of candidates and voters increase, I expect the extra
+However, as the number of candidates and voters increases, I expect the extra
 burden from additional coordination MPI ranks to be insignificant. In fact,
-looking at figure 3 below with $m=10^8$ and $n=20$, that exactly is the case.
+looking at Figure 3 below with $m=10^8$ and $n=20$, that exactly is the case.
 \begin{center}
     \includegraphics[scale=.6]{../aimos-stats/collection2/plots/vote-gen-100000000-20/total_time.png}
     \captionof{figure}{Compares the total runtime versus the number of ranks for running
@@ -347,19 +347,18 @@ looking at figure 3 below with $m=10^8$ and $n=20$, that exactly is the case.
              collected on AiMOS (DCS) supercomputer. }
 \end{center}
 
-Here the runtime does indeed decrease as the number of ranks increase. Without
+Here the runtime does indeed decrease as the number of ranks increases. Without
 distributing the computing, we would not have been able to generate the file in
 a reasonable amount of time. Using only 1 rank was completely insufficient, and
-the batch job was cancelled over 10 minutes in. In fact, only until 48 ranks
+the batch job was canceled over 10 minutes in. In fact, only until 48 ranks
 were we able to generate the file with a total runtime of about 3 minutes.
-Using 512 ranks reduced the runtime about 25\% to 40 seconds.
+Using 512 ranks reduced the runtime by about 25\% to 40 seconds.
 
-To explore more how vote counts affect the figure below shows the relationship
-between vote count and runtime between a different number of ranks. As already
-explained above, a large number of ranks with a low vote count is
-counterproductive because the overhead cost is much higher than the I/O cost.
-Figure 4 belows provides some insight as to where this inflection point occurs
-number where the cost of overhead overturns I/O.
+The figure below shows the relationship between vote count and runtime between
+a different number of ranks. As already explained above, a large number of
+ranks with a low vote count is counterproductive because the overhead cost is
+much higher than the I/O cost. Figure 4 below provides some insight as to where
+this inflection point occurs number where the cost of overhead overturns I/O.
 \begin{center}
     \includegraphics[scale=.6]{../aimos-stats/collection4/plots/total_time.png}
     \captionof{figure}{Compares the total runtime versus the number of votes. Each rank
@@ -369,19 +368,19 @@ number where the cost of overhead overturns I/O.
              AiMOS (DCS) supercomputer. }
 \end{center}
 
-From this figure we can see that lower number rank counts perform much better
-up until where the vote count starts to reach $4\times10^5$. After that, higher
-number rank counts start to achieve a lower run time. One puzzling thing is
-that 8 and 16 ranks seem to perform much better than 32 ranks consistently for
-all vote counts; we redid this experiment to see if that was a fluke, but 32
-ranks still performed much worse.
+From this figure, we can see that lower number rank counts perform much better
+until the vote count reaches $4\times10^5$. After that, higher number rank
+counts start to achieve a lower run time. One puzzling thing is that 8 and 16
+ranks seem to perform much better than 32 ranks consistently for all vote
+counts; we redid this experiment to see if that was a fluke, but 32 ranks still
+performed much worse.
 
 Figure 5 below shows the permutation creation time versus vote counts. As
-expected, indicated by figure 1, the higher rank count the permutation creation
-time will always be lower because there is no I/O time factored in. In the
-figure, this is immediately apparent with 256 ranks runtime consistently being
-lower than all the other ranks. However, again, one notable thing is that 32
-ranks performs worse than expected, and the same observation was made after
+expected, indicated by Figure 1, the higher the rank count, the permutation
+creation time will always be lower because there is no I/O time factored in. In
+the figure, this is immediately apparent, with 256 ranks runtime consistently
+being lower than all the other ranks. However, again, one notable thing is that
+32 ranks perform worse than expected, and the same observation was made after
 redoing the experiment.
 \begin{center}
     \includegraphics[scale=.6]{../aimos-stats/collection4/plots/permutation_create_time.png}
@@ -395,15 +394,15 @@ redoing the experiment.
 \section{Tallying Votes}
 \label{Tallying Votes}
 
-\subsection{Schulze Method}
-\label{Schulze Method}
+\subsection{Schulze Method and Graph Creation}
+\label{Schulze Method and Graph Creation}
 The main algorithm we use to create a finalized candidate ranking is the
-Schulze method. The algorithm is a grpah algorithm, is similar to the
+Schulze method. The algorithm is a graph algorithm, which is similar to the
 Floyd-Warshall algorithm in that it compares paths between all pairs of
 vertices. As a result, the run time of the algorithm is $O(n^3)$, where $n$ is
 the number of candidates \cite{schulze1}. This seems like an issue for scaling
-up; however the number of candidates stays constant and is typically a small
-number. As a result, their really is no use in parallelizing this aspect of the
+up; however, the number of candidates stays constant and is typically a small
+number. As a result, there really is no use in parallelizing this aspect of the
 algorithm. Where parallelization comes into play is the actual creation of the
 graph, which we represent using an adjacency matrix. The algorithm is given
 below:
@@ -426,19 +425,19 @@ below:
     \end{algorithmic}
 \end{algorithm}
 
-This algorithm is run on every rank concurrently. Similar to the first
-algorithm in section 2.2, the same arguments are passed in with the addition of
-$data$, which contains all the votes for each voter in the ranks id range. An
+This algorithm is run on every rank concurrently. Similar to the first the
+algorithm in Section 2.2, the same arguments are passed in with the addition of
+$data$, which contains all the votes for each voter in the rank's id range. An
 example vote is in the form $\{c_1, c_2, c_3, \ldots, c_n\}$, which is passed
 to $ranking$ on line 3. $graph$ represents preferences for each candidate such
-that $graph[c_i][c_j] = k$ means that $c_i$ is preffered to $c_j$ a total of
+that $graph[c_i][c_j] = k$ means that $c_i$ is preferred to $c_j$ a total of
 $k$ times; note that $k \geq 0$. To generate $graph$, the following is done
 from lines 2 to 11: for all $i$ and $j$ where $i < j$, $c_i$ is preferred to
 $c_j$, so we increment $graph[c_i][c_j]$ by 1. $graph$ contains all the
-pairwise preferences only for the data stored on its own rank, so a reduce
-operation needs to be performed to sum up all the graphs. This is done on line
-12 with \C{MPI_Reduce} using where $finalGraph$ is stored only on rank 0 and
-contains preferences for the whole vote data set:
+pairwise preferences only for the data stored on its own rank, so a reduce the
+operation needs to be performed, to sum up all the graphs. This is done on line
+12 with \C{MPI_Reduce}, and $finalGraph$ is stored only on rank 0, containing
+preferences for the whole vote data set:
 \begin{center}
     \begin{BVerbatim}
     MPI_Reduce(graph, final_graph, 
@@ -447,15 +446,15 @@ contains preferences for the whole vote data set:
     \end{BVerbatim}
 \end{center}
 After generating the final graph, the only step left is to calculate the final
-candidate ranking using Schulze method, which is fairly trivial.
+candidate ranking using the Schulze method, which is fairly trivial.
 \subsection{Permutation Generation and Monte Carlo}
 \label{Permutation Generation and Monte Carlo}
-A core part of a simulating a voting system is being able to generate a
+A core requirement of simulating a voting system is being able to generate a
 permutation of candidates ($P$), or a vote, according to some distribution that
-describes candidate placement relative to one another.  $P$ can be generated
+describes candidate placement relative to one another. $P$ can be generated
 efficiently using the Fisher-Yates shuffle algorithm \cite{hazra}; the run time
 of the algorithm is linear in the number of candidates, $O(|P|)$. The algorithm
-uniformly generates permuations such that given a complete set of $|P|!$
+uniformly generates permutations such that given a complete set of $|P|!$
 permutations $\mathbf{P} = \{P_1, P_2, P_3, \ldots, P_{|P|!}\}$ each $P_i$ is
 equally likely to be generated with probability ${1}/{|\mathbf{P}|}$. Also, if
 you look at all the permutations in $P$, for some $i$ and $j$ where $i\neq j$,
@@ -464,7 +463,7 @@ exactly $|\mathbf{P}|/2$ different permutations. This means that
 \begin{center}
     $\mathbb{E}(c_i >> c_j) = \dsum{i=0}{|\mathbf{P}|/2} \mathds{P}(c_i >> c_j) = \dfrac{1}{2}$.
 \end{center}
-This has some unique characteristics in regards to the preference graph. This
+This has some unique characteristics in regard to the preference graph. This
 means that every entry in the graph has an expected value of $m/2$, where $m$
 is the number of voters, regardless of the number of candidates. We can use
 Monte Carlo to verify this. Using $m=1000000$ and $n=2$ generates the
@@ -490,7 +489,7 @@ $ \begin{bmatrix}
     \end{bmatrix}  $
 }
 \end{center}
-All the entries for both graphs are approximately $m/2$ and dividing all the
+All the entries for both graphs are approximately $m/2$, and dividing all the
 entries by $m$ approximately results in $\frac{1}{2}$.
 
 Instead of uniformly sampling permutations from $\mathbf{P}$, we can apply
@@ -500,7 +499,7 @@ is unconditionally preferred to other candidates. That is for a single fixed
 candidate $c^*$, $\mathds{P}(c^* >> c_j) = 1$, and consequently,
 $\mathbb{E}(c^* >> c_j) = 1$. For all $i$ and $j$ where $i \neq j$ and $c_i
 \neq c^*$, $\mathbb{E}(c^* >> c_j) = \frac{1}{2}$. Using $m=1000000$, $n=5$ and
-$c^* = 3$ generates the following prefence graph and candidate ranking:
+$c^* = 3$ generates the following preference graph and candidate ranking:
 \begin{center}
 \scalebox{.9}{
 $ \begin{bmatrix}
@@ -520,7 +519,7 @@ first.
 
 The two distributions shown in this section are relatively simple, and their
 expected values can easily be computed. However, as the number of candidates
-increase, and if the distributions are not exactly trivial, Monte Carlo
+increases, and if the distributions are not exactly trivial, Monte Carlo
 simulations may be needed to get preference statistics.
 
 
