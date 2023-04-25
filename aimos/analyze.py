@@ -52,7 +52,7 @@ for name in os.listdir(output_directory):
 
         if not label[0] in rank_labels.keys(): rank_labels[label[0]] = [[],[]]
         
-        if gen_all_graph:
+        if gen_all_graph and int(name_data[0]) <= 1000000:
             if (label[1] == all_graph_label):
                 rank_labels[label[0]][0].append(float(name_data[0]))
                 rank_labels[label[0]][1].append(float(entry[1])/CLOCK_FREQ)
