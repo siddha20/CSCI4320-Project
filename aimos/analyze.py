@@ -2,10 +2,6 @@ import os
 import sys
 import matplotlib.pyplot as plt
 
-'''
-for i in <dir to aimos stats> ; do  python3 analyze.py $i ; done
-for i in ../aimos-stats/* ; do  python3 analyze.py $i ; done
-'''
 
 # print(plt.style.available)
 plt.style.use(['ggplot'])
@@ -76,7 +72,7 @@ for name in os.listdir(output_directory):
 if gen_all_graph:
     plt.figure()
     for key in rank_labels.keys():
-        if (int(key) in [1]): continue # skip these ranks
+        if (int(key) in [1, 2, 16]): continue # skip these ranks
         x = sorted(rank_labels[key][0])
         y = [y for _, y in sorted(zip(rank_labels[key][0], rank_labels[key][1]))]
         plt.title(f'{all_graph_label.replace("_", " ").title()} versus Vote Count')

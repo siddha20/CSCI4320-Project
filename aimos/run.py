@@ -1,6 +1,13 @@
 import os
+import sys
 
 
+if len(sys.argv) != 2 and len(sys.argv) != 1:
+    print("Usage: python run.py <delete>")
+    exit()
+
+
+delete_files = True if len(sys.argv) == 2 and sys.argv[1] == 'delete' else False
 project_directory = os.popen('cd .. ; pwd').read().replace(" ", "\\ ").replace("\n", "")
 exec_directory = os.path.join(project_directory, 'build/bin')
 data_directory = os.path.join(project_directory, 'aimos/data')
@@ -31,8 +38,8 @@ os.system(f'rm -r {batch_directory}')
 os.system(f'mkdir {batch_directory}')
 
 os.system(f'mkdir -p {data_directory}')
-os.system(f'rm -r {data_directory}')
-os.system(f'mkdir {data_directory}')
+# os.system(f'rm -r {data_directory}')
+# os.system(f'mkdir {data_directory}')
 
 def make_slurm_script(filename, ranks, exec_path, exec_args, exec_output):
     if (file_exists(filename)):
@@ -60,39 +67,41 @@ node_and_rank_counts = [
     (1, 2),   # 2 ranks
     (1, 4),   # 4 ranks
     (1, 8),   # 8 ranks 
-    (1, 16),  # 16 ranks
-    (1, 32),  # 32 ranks
-    (2, 24),  # 48 ranks
-    (2, 32),  # 64 ranks
-    (3, 32),  # 96 ranks
-    (4, 32),  # 128 ranks
-    (5, 32),  # 160 ranks
-    (6, 32),  # 192 ranks
-    (7, 32),  # 224 ranks
-    (8, 32),  # 256 ranks
-    (9, 32),  # 288 ranks
-    (10, 32), # 320 ranks
-    (11, 32), # 352 ranks
-    (12, 32), # 384 ranks
-    (13, 32), # 416 ranks
-    (14, 32), # 448 ranks
-    (15, 32), # 480 ranks
-    (16, 32)  # 512 ranks
+    # (1, 16),  # 16 ranks
+    # (1, 32),  # 32 ranks
+    # (2, 24),  # 48 ranks
+    # (2, 32),  # 64 ranks
+    # (3, 32),  # 96 ranks
+    # (4, 32),  # 128 ranks
+    # (5, 32),  # 160 ranks
+    # (6, 32),  # 192 ranks
+    # (7, 32),  # 224 ranks
+    # (8, 32),  # 256 ranks
+    # (9, 32),  # 288 ranks
+    # (10, 32), # 320 ranks
+    # (11, 32), # 352 ranks
+    # (12, 32), # 384 ranks
+    # (13, 32), # 416 ranks
+    # (14, 32), # 448 ranks
+    # (15, 32), # 480 ranks
+    # (16, 32)  # 512 ranks
 ]
 
 candidate_and_vote_counts = [
-    # (10000, 20),
+    (10000, 20),
     # (1000000, 20),
     # (10000000, 20),
     # (50000000, 20),
-    (100000000, 20),
-    (500000000, 20),
-    (1000000000, 20),
-    (5000000000, 20)
+    # (100000000, 20),
+    # (500000000, 20),
+    # (1000000000, 20),
+    # (5000000000, 20)
     # (1000, 500),
     # (1000, 5000),
     # (1000, 50000)
 ]
+
+
 
 # Create batch shell script for vote gen.
 vote_gen_batch_filename = os.path.join(batch_directory, 'batch-vote-gen.sh')
@@ -111,6 +120,7 @@ for node, ranks in node_and_rank_counts:
         # vote-gen specific args
         dist = 'UNIFORM'
         dist_arg = ''
+        delete_arg = 'DELETE' if delete_files else ''
 
         # Make directory for vote-gen slurm files
         vote_gen_slurm_dir = os.path.join(slurm_directory, f'vote-gen-{candidate_count}-{vote_count}')
@@ -130,8 +140,50 @@ for node, ranks in node_and_rank_counts:
                     f'>> {vote_gen_batch_filename}')
 
         # Set up executable stuff
-        exec_args = f'{data_file} {candidate_count} {vote_count} {dist} {dist_arg} DELETE'
+        exec_args = f'{data_file} {candidate_count} {vote_count} {dist} {dist_arg} {delete_arg}'
         exec_output = os.path.join(vote_gen_output_dir ,vote_gen_filename)
-        make_slurm_script(slurm_filename, ranks, exec_path, exec_args, exec_output)
+        make_slurm_script_not_aimos(slurm_filename, ranks, exec_path, exec_args, exec_output)
+
+# Create batch shell script for vote gen.
+vote_algo_batch_filename = os.path.join(batch_directory, 'batch-vote-algo.sh')
+vote_algo_data_directory = os.path.join(data_directory, 'vote-algo')
+gpu_count = 1
+time_limit = 10
+partition = 'el8'
+os.system(f'touch {vote_algo_batch_filename}')
+os.system(f'mkdir -p {vote_algo_data_directory}')
+
+# Create all the slurm files and append them to the bach shell script.
+for node, ranks in node_and_rank_counts:
+
+    for candidate_count, vote_count in candidate_and_vote_counts:
+
+        # vote-gen specific args
+        input_data_file = os.path.join(vote_gen_data_directory, f'vote-gen-{node}-{ranks}-{candidate_count}-{vote_count}.txt')
+
+        if not file_exists(input_data_file):
+            print(f'{input_data_file} does not exist!')
+
+        # Make directory for vote-algo slurm files
+        vote_algo_slurm_dir = os.path.join(slurm_directory, f'vote-algo-{candidate_count}-{vote_count}')
+        vote_algo_output_dir = os.path.join(output_directory, f'vote-algo-{candidate_count}-{vote_count}')
+        os.system(f'mkdir -p {vote_algo_slurm_dir}')
+        os.system(f'mkdir -p {vote_algo_output_dir}')
+
+        # Set some names up
+        vote_algo_filename = f'vote-algo-{node}-{ranks}-{candidate_count}-{vote_count}.txt'
+        exec_path = os.path.join(exec_directory, 'vote-algo')
+        data_file = os.path.join(vote_algo_data_directory, vote_algo_filename)
+        slurm_filename = os.path.join(vote_algo_slurm_dir, f'slurm-{node}.sh')
+        
+        # Add slurm file to batch script
+        if(not file_exists(slurm_filename)):
+            os.system(f'echo "sbatch -N {node} --gres=gpu:{gpu_count} -t {time_limit} --partition={partition} {slurm_filename}"'
+                    f'>> {vote_algo_batch_filename}')
+
+        # Set up executable stuff
+        exec_args = f'{input_data_file}'
+        exec_output = os.path.join(vote_algo_output_dir ,vote_algo_filename)
+        make_slurm_script_not_aimos(slurm_filename, ranks, exec_path, exec_args, exec_output)
 
 os.system(f'chmod -R 777 .')
