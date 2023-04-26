@@ -596,7 +596,9 @@ the encrypting voting data is ever modified by an adversary in transit.
 \subsection{Parallelizing SHA-1}
 
 To multi-thread SHA-1, we simply compute the digests of every $x$ blocks inside each rank, after encryption has completed. With this approach, we again
-have two levels of parallelization on the larger voting dataset: 
+have two levels of parallelization on the larger voting dataset: each rank computes digests of different smaller chunk of its larger chunk of data from the
+voting data, and each rank has a large chunk of the overall data. In our implementation, encryption and hashing is done in the same function, such that
+decryption will fail if the hash checks fail. With AES-CTR and SHA-1 combined, we have secure storage of voting data for transmission.
 
 \section{Project Organization}
 \label{Project Organization}
