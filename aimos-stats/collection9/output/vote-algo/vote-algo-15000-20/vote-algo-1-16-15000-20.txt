@@ -1,0 +1,2 @@
+16:decrypt_time 5.03145e+09 (cycles)
+16:total_time 1.16079e+10 (cycles)

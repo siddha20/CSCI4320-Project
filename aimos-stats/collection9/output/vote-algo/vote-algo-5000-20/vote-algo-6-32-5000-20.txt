@@ -1,0 +1,2 @@
+192:decrypt_time 3.62136e+08 (cycles)
+192:total_time 4.01882e+09 (cycles)
