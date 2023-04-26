@@ -1,0 +1,3 @@
+16:permutation_create_time 1.02266e+07 (cycles)
+16:encrypt_time 3.68771e+10 (cycles)
+16:total_time 4.33174e+10 (cycles)

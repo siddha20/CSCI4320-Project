@@ -548,6 +548,45 @@ large vote counts.
 \section{Encryptin' and Hashin' Votes}
 \label{Encrypting and Hashing Votes}
 
+\subsection{Intro to AES}
+To encrypt the vote data, we fully implemented the Advanced Encryption Standard (AES) which is the same cipher used by SSL/HTTPS and SSH,
+and is one of the most secure encryption algorithms currently available. AES is a block cipher, and typically encrypts 128 bits (or 16 bytes)
+at a time. A naive implementation would just encrypt block by block, but this would mean that the same plaintext (or input) would produce the same
+ciphertext (encrypted output). With this approach, attackers could recognize patterns in the encrypted vote data to guess how many votes each candidate has.
+
+To use AES securely, we must choose a ``mode''. A well-known and commonly used mode is ``Cipher Block Chaining'' (CBC), where we XOR each input
+block with the previous block's ciphertext, using an Initial Vector (IV) for the first block. This ensures that, even if we encrypt identical blocks,
+we get completely different resulting ciphertexts. CBC may not be secure if the same input is encrypted twice, but in our case we only encrypt one large
+chunk of data a single time. The biggest issue with CBC is that it cannot be parallelized, as the key for each block depends on the previous block.
+
+As AES is expensive, we must use a mode that can be parallelized, such that we can encrypt and decrypt large sums of data as fast as possible. What's more,
+the larger the key, the more encryption rounds and thus the more expensive each encryption operation is, thus greatly increasing the running time.
+
+\subsection{AES Counter (CTR) Mode}
+
+AES Counter (CTR) mode is a simple mode whereby we encrypt a ``counter'' block rather than the voting data plaintext itself. The counter block
+is typically generated using randomized 96-bits and then a 32-bit unsigned counter to get to the 16 bytes or 128-bit block size required for AES.
+Then, for every subsequent 16-byte block, we increment the 32-bit counter which is then encrypted with AES again. With the encrypted counter block,
+we can then XOR the plaintext to encrypt the voting data. Because the ``key'' in this case is an AES ciphertext which can be generated just from
+the IV and counter value, we can effectively find the XOR key for any block and encrypt/decrypt these blocks independently from each other.
+
+Because the blocks can be independently ciphered, we can parallelize CTR mode and use it to encrypt and decrypt our voting data using threading.
+In particular, we can divide up our large voting data file and assign a handful of blocks to each rank, such that each rank has its own chunk of the
+larger voting data file, and can use threading to encrypt the smaller blocks in parallel. This means we have two levels of parallelization for AES-CTR
+with threading and MPI: multiple threads per rank, and many ranks in the MPI domain.
+
+We use parallel IO to allow each rank to read and write its own set of 128-bit blocks. Because we are working with varying lengths of text, and the
+start and end of ``chunks'' of blocks must be deterministic, we pad out the plaintext voting data with hashtag characters to the maximum possible length
+of voting strings based on the number of votes and the candidates. This allows deterministic start and end byte positions to be calculated on the
+receiving/decrypting side.
+
+\subsection{Intro to SHA-1}
+
+AES grants us confidentiality, but we also need data integrity/authentication to prevent malleability of our encrypted data.
+Malleability in cryptography is defined as the degree to which encrypted data can be changed such that an altered plaintext results
+when the intended receiver decrypts the data. In particular, it is the degree to which 
+
+\subsection{Parallelizing SHA-1}
 
 \section{Project Organization}
 \label{Project Organization}
