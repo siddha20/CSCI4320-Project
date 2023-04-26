@@ -138,11 +138,13 @@ void create_vote_file(MPI_File fh, int rank, int size, int vote_count, const Dis
     MPI_Barrier(MPI_COMM_WORLD);
 
     Timer t3(std::to_string(size) + ":" + "encrypt_time");
+    t3.start();
     size_t enc_offset = rank * 16 + 1000000;
     buf_t encrypted;
     Crypto cryptor({ ENC_IV }, { ENC_KEY_CUR }, BLOCKS_PER_HASH);
     cryptor.Encrypt((const u8 *)vote_str.data(), vote_str.length(), enc_offset, encrypted);
-    
+    t3.end();
+
     if (rank == 0) t3.print_duration_cycles_label_only();
 
     // Figure out cursor positions

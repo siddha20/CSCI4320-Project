@@ -40,6 +40,9 @@ int main(int argc, char** argv) {
         input_filename = argv[1];
     }
 
+    Timer total_time(std::to_string(size) + ":" + "total_time");
+    total_time.start();
+
     RankInfo rank_info;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank_info.rank);
     MPI_Comm_size(MPI_COMM_WORLD, &rank_info.size);
@@ -68,6 +71,7 @@ int main(int argc, char** argv) {
     MPI_File_read_at_all(fh, sizeof(int) + rank * overlap_size, buffer, overlap_size, MPI_CHAR, &status);
     
     Timer t3(std::to_string(size) + ":" + "decrypt_time");
+    t3.start();
     
     buf_t decrypted = decrypt(buffer, rank, overlap_size);
     if (rank == 0)
@@ -80,6 +84,7 @@ int main(int argc, char** argv) {
     delete[] buffer;
     buffer = (char*)&decrypted[0];
     
+    t3.end();
     if (rank == 0) t3.print_duration_cycles_label_only();
 
     std::vector<int> voters;
@@ -147,9 +152,9 @@ int main(int argc, char** argv) {
     // Compute candidate listing using final graph.
     if (rank == 0) {
 
-        std::cout << "Preference graph:" << std::endl;
-        print_array_2d(final_graph, c, c);
-        std::cout << std::endl;
+        // std::cout << "Preference graph:" << std::endl;
+        // print_array_2d(final_graph, c, c);
+        // std::cout << std::endl;
 
         // int* strength_graph = new int[graph_size]();
         std::vector<int> strength_graph(graph_size, 0);
@@ -180,9 +185,9 @@ int main(int argc, char** argv) {
             }
         }
 
-        std::cout << "Strength graph: " << std::endl;
-        print_vec_2d(strength_graph, c, c);
-        std::cout << std::endl;
+        // std::cout << "Strength graph: " << std::endl;
+        // print_vec_2d(strength_graph, c, c);
+        // std::cout << std::endl;
 
         std::vector<std::pair<int, int>> ranking;
         for (int i = 0; i < c; i++) {
@@ -195,12 +200,12 @@ int main(int argc, char** argv) {
             ranking.push_back(std::make_pair(i, count));
         }
 
-        std::cout << "Candidate ranking: " << std::endl;
-        std::sort(ranking.begin(), ranking.end(), [](auto& a, auto& b) { return a.second > b.second; });
-        for (auto [candidate, _] : ranking) {
-            std::cout << candidate + 1 << " ";
-        }
-        std::cout << std::endl;
+        // std::cout << "Candidate ranking: " << std::endl;
+        // std::sort(ranking.begin(), ranking.end(), [](auto& a, auto& b) { return a.second > b.second; });
+        // for (auto [candidate, _] : ranking) {
+        //     std::cout << candidate + 1 << " ";
+        // }
+        // std::cout << std::endl;
         // delete [] strength_graph;
     }
 
@@ -208,6 +213,9 @@ int main(int argc, char** argv) {
 
     MPI_File_close(&fh);
     MPI_Finalize();
+    
+    total_time.end();
+    if (rank == 0) total_time.print_duration_cycles_label_only();
 
     return EXIT_SUCCESS;
 }
