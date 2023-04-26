@@ -584,9 +584,19 @@ receiving/decrypting side.
 
 AES grants us confidentiality, but we also need data integrity/authentication to prevent malleability of our encrypted data.
 Malleability in cryptography is defined as the degree to which encrypted data can be changed such that an altered plaintext results
-when the intended receiver decrypts the data. In particular, it is the degree to which 
+when the intended receiver decrypts the data. In particular, it is the possibility to which the modified ciphertext results in a plaintext
+that was never encrypted.
+
+To protect against this, we implemented the SHA-1 cryptographic hash. After each rank uses threads to encrypt its share of blocks of voting data,
+multi-threaded SHA-1 begins. We define a number of blocks to use for each hash. I.e., we hash every $x$ blocks and append the resulting 20-byte SHA-1
+digest to the end of the encrypted data. The receiving side then computes its own hashes over the encrypted data and appends all digests together
+together. The large strings of digests are then compared on the receiving side before decryption continues. The hash comparison will now fail if
+the encrypting voting data is ever modified by an adversary in transit. 
 
 \subsection{Parallelizing SHA-1}
+
+To multi-thread SHA-1, we simply compute the digests of every $x$ blocks inside each rank, after encryption has completed. With this approach, we again
+have two levels of parallelization on the larger voting dataset: 
 
 \section{Project Organization}
 \label{Project Organization}
