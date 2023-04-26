@@ -546,11 +546,10 @@ large vote counts.
              collected on AiMOS (DCS) supercomputer. }
 \end{center}
 
-
-\section{Encryptin' and Hashin' Votes}
+\section{Encrypting and Hashing Votes}
 \label{Encrypting and Hashing Votes}
 
-\subsection{Intro to AES}
+\subsection{Introduction to AES}
 To encrypt the vote data, we fully implemented the Advanced Encryption Standard
 (AES) which is the same cipher used by SSL/HTTPS and SSH, and is one of the
 most secure encryption algorithms currently available. AES is a block cipher,
@@ -595,16 +594,6 @@ data file, and can use threading to encrypt the smaller blocks in parallel.
 This means we have two levels of parallelization for AES-CTR with threading and
 MPI: multiple threads per rank, and many ranks in the MPI domain.
 
-\begin{center}
-    \includegraphics[scale=.6]{../aimos-stats/collection8/plots/encrypt_time.png}
-    \captionof{figure}{Compares the total time versus the number of votes for
-             generating and encrypting candidate listings. Each rank has its
-             own line indicated by the legend. Each point represents an actual
-             data point (access
-             \href{\repo{aimos-stats/collection8/output/vote-gen}}{here})
-             collected on AiMOS (DCS) supercomputer. }
-\end{center}
-
 We use parallel IO to allow each rank to read and write its own set of 128-bit
 blocks. Because we are working with varying lengths of text, and the start and
 end of ``chunks'' of blocks must be deterministic, we pad out the plaintext
@@ -613,7 +602,7 @@ strings based on the number of votes and the candidates. This allows
 deterministic start and end byte positions to be calculated on the
 receiving/decrypting side.
 
-\subsection{Intro to SHA-1}
+\subsection{Introduction to SHA-1}
 
 AES grants us confidentiality, but we also need data integrity/authentication
 to prevent malleability of our encrypted data. Malleability in cryptography is
@@ -634,10 +623,37 @@ ever modified by an adversary in transit.
 
 \subsection{Parallelizing SHA-1}
 
-To multi-thread SHA-1, we simply compute the digests of every $x$ blocks inside each rank, after encryption has completed. With this approach, we again
-have two levels of parallelization on the larger voting dataset: each rank computes digests of different smaller chunk of its larger chunk of data from the
-voting data, and each rank has a large chunk of the overall data. In our implementation, encryption and hashing is done in the same function, such that
-decryption will fail if the hash checks fail. With AES-CTR and SHA-1 combined, we have secure storage of voting data for transmission.
+To multi-thread SHA-1, we simply compute the digests of every $x$ blocks inside
+each rank, after encryption has completed. With this approach, we again have two
+levels of parallelization on the larger voting dataset: each rank computes
+digests of different smaller chunk of its larger chunk of data from the voting
+data, and each rank has a large chunk of the overall data. In our
+implementation, encryption and hashing is done in the same function, such that
+decryption will fail if the hash checks fail. With AES-CTR and SHA-1 combined,
+we have secure storage of voting data for transmission.
+
+\subsection{Results}
+
+Due to the increased computational cost of AES encryption and SHA-1 hashing, as
+well as the much larger voting data that results from these additions, we had to
+cut down the number of votes tested by an order of magnitude to ensure that we
+could get results on AiMOS in a reasonable amount of time. The results shown in
+Figure 7 show the total time needed to encrypt and hash the generated voting
+data file. Similar to previous results, we can see there is little benefit to
+using more ranks with vote counts around 10,000. Though, in this case, we can
+actually observe a minor speedup 
+
+
+\begin{center}
+    \includegraphics[scale=.6]{../aimos-stats/collection8/plots/encrypt_time.png}
+    \captionof{figure}{Compares the total time versus the number of votes for
+             generating and encrypting candidate listings. Each rank has its
+             own line indicated by the legend. Each point represents an actual
+             data point (access
+             \href{\repo{aimos-stats/collection8/output/vote-gen}}{here})
+             collected on AiMOS (DCS) supercomputer. }
+\end{center}
+
 
 \section{Project Organization}
 \label{Project Organization}
