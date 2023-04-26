@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
         distribution_type = argv[4];
     }
 
+    /* Use a uniform distribution when sampling permutations. */
     if (distribution_type == "UNIFORM") {
         dist = Uniform(candidate_count);
         if (argc == 6) {
@@ -44,6 +45,7 @@ int main(int argc, char** argv) {
             }
         }
     }
+    /* Use a full bias distribution when sampling permutations. */
     else if (argc >= 6 && distribution_type == "FULLBIAS") {
         dist = FullBias(candidate_count, std::stoi(argv[5]) - 1);
         if (argc == 7) {
@@ -67,8 +69,10 @@ int main(int argc, char** argv) {
 
     std::srand(1230128093 + rank << 2);
 
+    /* Timer for total time. */
     Timer t1 = Timer(std::to_string(size) + ":" + "total_time");
 
+    /* Create the vote file. */
     t1.start();
     create_vote_file(fh, rank, size, vote_count, dist);
     t1.end();
@@ -166,6 +170,7 @@ void create_vote_file(MPI_File fh, int rank, int size, int vote_count, const Dis
     MPI_File_close(&fh);
 }
 
+/* Tests to test uniform distribution. */
 void uniform_test(size_t size) {
     Distribution dist = Uniform(size);
     std::cout << dist.get_index(.03) << std::endl;

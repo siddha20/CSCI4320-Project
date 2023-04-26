@@ -6,6 +6,7 @@
 namespace probability {
 Distribution::Distribution() = default;
 
+/* Gets the index of using cumulative distribution. */
 size_t Distribution::get_index(double f1) const {
     for (int i = 0; i < c_dist.size(); i++) {
         if (f1 <= c_dist[i]) return i;

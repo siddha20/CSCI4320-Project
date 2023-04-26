@@ -47,6 +47,7 @@ int main(int argc, char** argv) {
     int size = rank_info.size;
 
 
+    /* Total timer for the whole algorithm. */
     Timer total_time(std::to_string(size) + ":" + "total_time");
     total_time.start();
     
@@ -71,6 +72,7 @@ int main(int argc, char** argv) {
     char* buffer = new char[overlap_size]();
     MPI_File_read_at_all(fh, sizeof(int) + rank * overlap_size, buffer, overlap_size, MPI_CHAR, &status);
     
+    /* Timer for decryption time. */
     Timer t3(std::to_string(size) + ":" + "decrypt_time");
     t3.start();
     
@@ -88,6 +90,7 @@ int main(int argc, char** argv) {
     t3.end();
     if (rank == 0) t3.print_duration_cycles_label_only();
 
+    /* Read in all the lines and populate the data map. */
     std::vector<int> voters;
     std::map<int, std::vector<int> > data;
     int cursor = 0;
@@ -150,7 +153,8 @@ int main(int argc, char** argv) {
     MPI_Reduce(graph, final_graph, graph_size, get_mpi_type<int>(), MPI_SUM, 0, MPI_COMM_WORLD);
     delete [] graph;
 
-    // Compute candidate listing using final graph.
+    /* Schulze Method is  performed here. We compute the candidate listings
+    using the preference graph on rank 0. */
     if (rank == 0) {
 
         // std::cout << "Preference graph:" << std::endl;
@@ -222,6 +226,7 @@ int main(int argc, char** argv) {
 }
 
 
+
 buf_t decrypt(const char *buffer, size_t rank, size_t overlap_size) {
     size_t enc_offset = rank * 16 + 1000000;
     buf_t decrypted;
@@ -240,6 +245,7 @@ buf_t decrypt(const char *buffer, size_t rank, size_t overlap_size) {
 }
 
 
+/* Reads the first lien from the file and populates all the rank info. */
 void read_first_line(MPI_File fh, RankInfo &rank_info, size_t overlap_size) {
 
     // Get file size.
@@ -267,6 +273,7 @@ void read_first_line(MPI_File fh, RankInfo &rank_info, size_t overlap_size) {
 }
 
 
+/* Sets the start and end bytes to account for any missing data due to unknown chunk sizes. */
 void get_start_and_end_bytes(const RankInfo &rank_info, size_t &start_byte, size_t &end_byte) {
 
     const int overlap_size = OVERLAP_MULTIPLIER * (rank_info.candidate_count * std::to_string(rank_info.candidate_count).length());
@@ -278,6 +285,7 @@ void get_start_and_end_bytes(const RankInfo &rank_info, size_t &start_byte, size
 }
 
 
+/* Tokenizes a line according to some delimiter. */
 std::vector<int> tokenize_line(const std::string &line, char delimitier) {
     std::vector<int> nums;
 

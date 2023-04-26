@@ -7,6 +7,7 @@ namespace probability {
 
 FullBias::FullBias() = default;
 
+/* Full Bias distribution implementation. */
 FullBias::FullBias(size_t size, size_t index) {
     this->size = size;
     dist = std::vector<double>(size);
