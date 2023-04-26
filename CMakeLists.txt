@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(final-project LANGUAGES CXX CUDA)
+project(final-project LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,16 +8,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(MPI REQUIRED)
 find_package(Threads REQUIRED)
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+if (APPLE OR CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)|(arm64)")
     add_compile_definitions(NOT_AIMOS)
 endif()
 
 add_library(crypto STATIC
-    src/crypto/cryptompi.cpp
+    src/crypto/crypto.cpp
     src/crypto/ctrmode.cpp
     src/crypto/rijndael.cpp
     src/crypto/sha1.cpp
 )
+target_include_directories(crypto PUBLIC src/crypto)
 
 add_library(probability STATIC
     src/probability/distribution.cpp
@@ -25,16 +26,13 @@ add_library(probability STATIC
     src/probability/fullbias.cpp
     src/probability/custom.cpp
 )
+target_include_directories(probability PUBLIC src/probability)
 
 add_executable(celeb src/celeb/celeb.cpp)
 add_executable(vote-algo src/vote/vote-algo.cpp)
 add_executable(vote-gen src/vote/vote-gen.cpp)
-add_executable(graph-gen
-    src/graph/graph-gen.cpp
-    src/graph/graph-gen.cu
-)
 
-set(TARGETS celeb vote-algo vote-gen graph-gen)
+set(TARGETS celeb vote-algo vote-gen)
 
 set_target_properties( ${TARGETS}
     PROPERTIES
@@ -44,7 +42,7 @@ set_target_properties( ${TARGETS}
 )
 
 foreach (TARGET IN ITEMS ${TARGETS})
-    target_include_directories(${TARGET} PRIVATE src/common src/probability)
+    target_include_directories(${TARGET} PRIVATE src/common)
     target_link_libraries(${TARGET} PRIVATE MPI::MPI_CXX crypto probability Threads::Threads)
 
     set_target_properties(${TARGET} PROPERTIES
