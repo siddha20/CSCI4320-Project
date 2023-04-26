@@ -361,9 +361,9 @@ much higher than the I/O cost. Figure 4 below provides some insight as to where
 this inflection point occurs number where the cost of overhead overturns I/O.
 \begin{center}
     \includegraphics[scale=.6]{../aimos-stats/collection4/plots/total_time.png}
-    \captionof{figure}{Compares the total runtime versus the number of votes. Each rank
-             has its own line indicated by the legend. Each point represents an
-             actual data point (access
+    \captionof{figure}{Compares the total runtime versus the number of votes
+             for generating vote file. Each rank has its own line indicated by
+             the legend. Each point represents an actual data point (access
              \href{\repo{aimos-stats/collection4/output}}{here}) collected on
              AiMOS (DCS) supercomputer. }
 \end{center}
@@ -522,9 +522,27 @@ expected values can easily be computed. However, as the number of candidates
 increases, and if the distributions are not exactly trivial, Monte Carlo
 simulations may be needed to get preference statistics.
 
+\subsection{Results}
+\label{Results2}
 
-% \subsection{Results}
-% \label{Results}
+Parallelizing the vote tallying algorithm did allow for an increase in
+performance as the number of vote counts increased. Similar to the result
+analysis in Section 1, using too many ranks on small vote counts ended up being
+slower and increased runtimes. However, Figure 6 below indicates that as vote
+counts continue to increase, using more ranks is indeed much more beneficial.
+In the plot, the inflection point occurs around $8\times 10^5$ votes, and by
+$10^6$ votes, the higher ranks do purely better. These results indicate that
+our algorithm is well parallelized and will benefit when using significantly
+large vote counts.
+\begin{center}
+    \includegraphics[scale=.6]{../aimos-stats/collection7/plots/total_time.png}
+    \captionof{figure}{Compares the total time versus the number of votes for
+             generating candidate listings. Each rank has its own line
+             indicated by the legend. Each point represents an actual data
+             point (access
+             \href{\repo{aimos-stats/collection7/output/vote-algo}}{here})
+             collected on AiMOS (DCS) supercomputer. }
+\end{center}
 
 
 \section{Encryptin' and Hashin' Votes}
@@ -533,6 +551,7 @@ simulations may be needed to get preference statistics.
 
 \section{Project Organization}
 \label{Project Organization}
+
 
 \section{Summary and Future Work}
 \label{Summary and Future Work}
