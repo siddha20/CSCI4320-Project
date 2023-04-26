@@ -63,42 +63,70 @@ def make_slurm_script_not_aimos(filename, ranks, exec_path, exec_args, exec_outp
                   f'> {filename}')
 
 node_and_rank_counts = [
-    (1, 1),   # 1 rank
-    (1, 2),   # 2 ranks
+    #(1, 1),   # 1 rank
+    #(1, 2),   # 2 ranks
     (1, 4),   # 4 ranks
     (1, 8),   # 8 ranks 
-    # (1, 16),  # 16 ranks
-    # (1, 32),  # 32 ranks
-    # (2, 24),  # 48 ranks
-    # (2, 32),  # 64 ranks
-    # (3, 32),  # 96 ranks
-    # (4, 32),  # 128 ranks
-    # (5, 32),  # 160 ranks
-    # (6, 32),  # 192 ranks
-    # (7, 32),  # 224 ranks
-    # (8, 32),  # 256 ranks
-    # (9, 32),  # 288 ranks
-    # (10, 32), # 320 ranks
-    # (11, 32), # 352 ranks
-    # (12, 32), # 384 ranks
-    # (13, 32), # 416 ranks
-    # (14, 32), # 448 ranks
-    # (15, 32), # 480 ranks
-    # (16, 32)  # 512 ranks
+    (1, 16),  # 16 ranks
+    (1, 32),  # 32 ranks
+    #(2, 24),  # 48 ranks
+    (2, 32),  # 64 ranks
+    #(3, 32),  # 96 ranks
+    (4, 32),  # 128 ranks
+    #(5, 32),  # 160 ranks
+    (6, 32),  # 192 ranks
+    #(7, 32),  # 224 ranks
+    (8, 32)  # 256 ranks
+    #(9, 32),  # 288 ranks
+    #(10, 32), # 320 ranks
+    #(11, 32), # 352 ranks
+    #(12, 32), # 384 ranks
+    #(13, 32), # 416 ranks
+    #(14, 32), # 448 ranks
+    #(15, 32), # 480 ranks
+    #(16, 32)  # 512 ranks
 ]
 
 candidate_and_vote_counts = [
-    (10000, 20),
-    # (1000000, 20),
-    # (10000000, 20),
-    # (50000000, 20),
-    # (100000000, 20),
-    # (500000000, 20),
-    # (1000000000, 20),
-    # (5000000000, 20)
-    # (1000, 500),
-    # (1000, 5000),
-    # (1000, 50000)
+    (50000, 20),
+    (75000, 20),
+    (100000, 20),
+    (125000, 20),
+    (150000, 20),
+    (175000, 20),
+    (200000, 20),
+    (225000, 20),
+    (250000, 20),
+    (275000, 20),
+    (300000, 20),
+    (325000, 20),
+    (350000, 20),
+    (375000, 20),
+    (400000, 20),
+    (425000, 20),
+    (450000, 20),
+    (475000, 20),
+    (500000, 20),
+    (525000, 20),
+    (550000, 20),
+    (575000, 20),
+    (600000, 20),
+    (625000, 20),
+    (650000, 20),
+    (675000, 20),
+    (700000, 20),
+    (725000, 20),
+    (750000, 20),
+    (775000, 20),
+    (800000, 20),
+    (825000, 20),
+    (850000, 20),
+    (875000, 20),
+    (900000, 20),
+    (925000, 20),
+    (950000, 20),
+    (975000, 20),
+    (1000000, 20)
 ]
 
 
@@ -142,7 +170,7 @@ for node, ranks in node_and_rank_counts:
         # Set up executable stuff
         exec_args = f'{data_file} {candidate_count} {vote_count} {dist} {dist_arg} {delete_arg}'
         exec_output = os.path.join(vote_gen_output_dir ,vote_gen_filename)
-        make_slurm_script_not_aimos(slurm_filename, ranks, exec_path, exec_args, exec_output)
+        make_slurm_script(slurm_filename, ranks, exec_path, exec_args, exec_output)
 
 # Create batch shell script for vote gen.
 vote_algo_batch_filename = os.path.join(batch_directory, 'batch-vote-algo.sh')
@@ -184,6 +212,6 @@ for node, ranks in node_and_rank_counts:
         # Set up executable stuff
         exec_args = f'{input_data_file}'
         exec_output = os.path.join(vote_algo_output_dir ,vote_algo_filename)
-        make_slurm_script_not_aimos(slurm_filename, ranks, exec_path, exec_args, exec_output)
+        make_slurm_script(slurm_filename, ranks, exec_path, exec_args, exec_output)
 
 os.system(f'chmod -R 777 .')
