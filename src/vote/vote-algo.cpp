@@ -45,6 +45,9 @@ int main(int argc, char** argv) {
 
     std::srand(1230128093 + rank << 2);
 
+    Timer t1 = Timer(std::to_string(size) + ":" + "total_time");
+
+    t1.start();
     // Open up the file.
     MPI_File fh;
     MPI_Status status;
@@ -126,9 +129,9 @@ int main(int argc, char** argv) {
     // Compute candidate listing using final graph.
     if (rank == 0) {
 
-        std::cout << "Preference graph:" << std::endl;
-        print_array_2d(final_graph, c, c);
-        std::cout << std::endl;
+        // std::cout << "Preference graph:" << std::endl;
+        // print_array_2d(final_graph, c, c);
+        // std::cout << std::endl;
 
         // int* strength_graph = new int[graph_size]();
         std::vector<int> strength_graph(graph_size, 0);
@@ -159,9 +162,9 @@ int main(int argc, char** argv) {
             }
         }
 
-        std::cout << "Strength graph: " << std::endl;
-        print_vec_2d(strength_graph, c, c);
-        std::cout << std::endl;
+        // std::cout << "Strength graph: " << std::endl;
+        // print_vec_2d(strength_graph, c, c);
+        // std::cout << std::endl;
 
         std::vector<std::pair<int, int>> ranking;
         for (int i = 0; i < c; i++) {
@@ -174,16 +177,20 @@ int main(int argc, char** argv) {
             ranking.push_back(std::make_pair(i, count));
         }
 
-        std::cout << "Candidate ranking: " << std::endl;
-        std::sort(ranking.begin(), ranking.end(), [](auto& a, auto& b) { return a.second > b.second; });
-        for (auto [candidate, _] : ranking) {
-            std::cout << candidate + 1 << " ";
-        }
-        std::cout << std::endl;
+        // std::cout << "Candidate ranking: " << std::endl;
+        // std::sort(ranking.begin(), ranking.end(), [](auto& a, auto& b) { return a.second > b.second; });
+        // for (auto [candidate, _] : ranking) {
+        //     std::cout << candidate + 1 << " ";
+        // }
+        // std::cout << std::endl;
         // delete [] strength_graph;
     }
 
     delete [] final_graph;
+
+    t1.end();
+
+    if (rank == 0) t1.print_duration_cycles_label_only();
 
     MPI_File_close(&fh);
     MPI_Finalize();
