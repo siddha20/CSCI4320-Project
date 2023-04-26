@@ -8,3 +8,5 @@ build/
 aimos/output/
 aimos/slurm/
 .DS_Store
+report/
+!report/report.tex
