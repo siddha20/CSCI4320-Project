@@ -4,6 +4,13 @@ project(final-project LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "-Wall -O2")
+
+option(VERBOSE "Print outs" OFF)
+if (VERBOSE)
+    message(STATUS "Verbosity enabled")
+    add_compile_definitions(VERBOSE)
+endif()
 
 find_package(MPI REQUIRED)
 find_package(Threads REQUIRED)
@@ -20,6 +27,8 @@ add_library(crypto STATIC
 )
 target_include_directories(crypto PUBLIC src/crypto)
 
+add_executable(cryptotest src/crypto/cryptotest.cpp)
+
 add_library(probability STATIC
     src/probability/distribution.cpp
     src/probability/uniform.cpp
@@ -32,7 +41,7 @@ add_executable(celeb src/celeb/celeb.cpp)
 add_executable(vote-algo src/vote/vote-algo.cpp)
 add_executable(vote-gen src/vote/vote-gen.cpp)
 
-set(TARGETS celeb vote-algo vote-gen)
+set(TARGETS celeb vote-algo vote-gen cryptotest)
 
 set_target_properties( ${TARGETS}
     PROPERTIES

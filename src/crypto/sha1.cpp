@@ -6,10 +6,12 @@ namespace crypto
 {
 void Sha1::ComputeDigest(const u8 *b, size_t size, u8 (&digest)[20])
 {
+    // Size cannot be zero
     assert(size != 0);
     if (!size)
         return;
-        
+    
+    // Initialization
     u64 bits = (u64)(size * 8);
     u32 chnk = (u32)((size + 8) / 64 + 1);
     u32 tl = (u32)(64 * chnk - size);
@@ -17,6 +19,7 @@ void Sha1::ComputeDigest(const u8 *b, size_t size, u8 (&digest)[20])
     for (i32 i = 0; i < 8; ++i)
         t[tl - (i + 1)] = ((u8*)&bits)[i];
 
+    // State initialization
     u32 s2[5] = { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0 };
     for (u32 i = 0, p = 0; i < chnk; ++i)
     {
@@ -65,6 +68,7 @@ void Sha1::ComputeDigest(const u8 *b, size_t size, u8 (&digest)[20])
 
 void Sha1::Round(u32 s1[5], u32 t, u32 k, u32 w)
 {
+    // Do SHA-1 transformation
     u32 r = RotLeft(s1[0], 5) + t + s1[4] + k + w;
     s1[4] = s1[3];
     s1[3] = s1[2];

@@ -29,6 +29,10 @@ buf_t decrypt(const char *buffer, size_t rank, size_t overlap_size);
 
 int main(int argc, char** argv) {
 
+#ifdef VERBOSE
+    std::cout << "verbose" << std::endl;
+#endif
+
     MPI_Init(&argc, &argv);
 
     std::string input_filename;
@@ -110,8 +114,6 @@ int main(int argc, char** argv) {
     // Find distinct voters per rank.
     std::vector<int> voter_diff;
     if (rank == size - 1) voter_diff = voters;
-    print_vec(voter_diff);
-    printf("lol\n");
 
     for (int j = 0; j < size - 1; j++) {
         std::vector<int> temp;
@@ -156,12 +158,12 @@ int main(int argc, char** argv) {
     /* Schulze Method is  performed here. We compute the candidate listings
     using the preference graph on rank 0. */
     if (rank == 0) {
+#ifdef VERBOSE
+        std::cout << "Preference graph:" << std::endl;
+        print_array_2d(final_graph, c, c);
+        std::cout << std::endl;
+#endif
 
-        // std::cout << "Preference graph:" << std::endl;
-        // print_array_2d(final_graph, c, c);
-        // std::cout << std::endl;
-
-        // int* strength_graph = new int[graph_size]();
         std::vector<int> strength_graph(graph_size, 0);
 
         for (int i = 0; i < c; i++) {
@@ -190,9 +192,11 @@ int main(int argc, char** argv) {
             }
         }
 
-        // std::cout << "Strength graph: " << std::endl;
-        // print_vec_2d(strength_graph, c, c);
-        // std::cout << std::endl;
+#ifdef VERBOSE
+        std::cout << "Strength graph: " << std::endl;
+        print_vec_2d(strength_graph, c, c);
+        std::cout << std::endl;
+#endif
 
         std::vector<std::pair<int, int>> ranking;
         for (int i = 0; i < c; i++) {
@@ -205,13 +209,14 @@ int main(int argc, char** argv) {
             ranking.push_back(std::make_pair(i, count));
         }
 
-        // std::cout << "Candidate ranking: " << std::endl;
-        // std::sort(ranking.begin(), ranking.end(), [](auto& a, auto& b) { return a.second > b.second; });
-        // for (auto [candidate, _] : ranking) {
-        //     std::cout << candidate + 1 << " ";
-        // }
-        // std::cout << std::endl;
-        // delete [] strength_graph;
+#ifdef VERBOSE
+        std::cout << "Candidate ranking: " << std::endl;
+        std::sort(ranking.begin(), ranking.end(), [](auto& a, auto& b) { return a.second > b.second; });
+        for (auto [candidate, _] : ranking) {
+            std::cout << candidate + 1 << " ";
+        }
+        std::cout << std::endl;
+#endif
     }
 
     delete [] final_graph;
@@ -233,7 +238,7 @@ buf_t decrypt(const char *buffer, size_t rank, size_t overlap_size) {
     Crypto cryptor({ ENC_IV }, { ENC_KEY_CUR }, BLOCKS_PER_HASH);
     if (!cryptor.Decrypt((const u8 *)buffer, overlap_size, enc_offset, decrypted))
     {
-        fprintf(stderr, "Decrypt failed rank %d, likely hash mismatch\n", rank);
+        fprintf(stderr, "Decrypt failed rank %d, likely hash mismatch\n", (int)rank);
         exit(1);
     }
     
