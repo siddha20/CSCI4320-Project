@@ -6,10 +6,10 @@
 
 namespace crypto
 {
-class CryptoMpi final
+class Crypto final
 {
 public:
-    CryptoMpi(const buf_t &iv, const buf_t &key, size_t blocksPerHash);
+    Crypto(const buf_t &iv, const buf_t &key, size_t blocksPerHash);
 
     bool Encrypt(const u8 *data, size_t length, size_t offset, buf_t &result);
     bool Decrypt(const u8 *data, size_t length, size_t offset, buf_t &result);

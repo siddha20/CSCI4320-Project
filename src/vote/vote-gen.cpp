@@ -4,8 +4,10 @@
 #include <numeric>
 #include "common.h"
 #include "probability.h"
+#include "crypto.h"
 
 using namespace probability;
+using namespace crypto;
 
 void uniform_test();
 void create_vote_file(MPI_File fh, int rank, int size, int vote_count, const Distribution &dist);
@@ -116,38 +118,51 @@ void create_vote_file(MPI_File fh, int rank, int size, int vote_count, const Dis
     size_t candidate_count = dist.get_size();
 
     // Create votes
-    std::string vote_buffer = "";
-    if (rank == 0) vote_buffer = std::to_string(vote_count) + ":" + std::to_string(candidate_count) + "\n";
+    std::string vote_str = "";
+    if (rank == 0) vote_str = std::to_string(vote_count) + ":" + std::to_string(candidate_count) + "\n";
 
     Timer t2 = Timer(std::to_string(size) + ":" + "permutation_create_time");
 
     t2.start();
     for (int i = start_voter_id; i < end_voter_id; i++) {
         std::string vote_sequence = create_random_permutation(dist);
-        vote_buffer += std::to_string(i) + ":" + vote_sequence + "\n";
+        vote_str += std::to_string(i) + ":" + vote_sequence + "\n";
     }
     t2.end();
 
     if (rank == 0) t2.print_duration_cycles_label_only();
 
+    const int overlap_size = votes_per_rank * OVERLAP_MULTIPLIER * (vote_count + ((candidate_count + 1) * std::to_string(candidate_count).length()));
+    vote_str += std::string(std::max(0, overlap_size - (int)vote_str.size()), '#');
+
     MPI_Barrier(MPI_COMM_WORLD);
+
+    Timer t3(std::to_string(size) + ":" + "encrypt_time");
+    size_t enc_offset = rank * 16 + 1000000;
+    buf_t encrypted;
+    Crypto cryptor({ ENC_IV }, { ENC_KEY_CUR }, BLOCKS_PER_HASH);
+    cryptor.Encrypt((const u8 *)vote_str.data(), vote_str.length(), enc_offset, encrypted);
+    
+    if (rank == 0) t3.print_duration_cycles_label_only();
 
     // Figure out cursor positions
     size_t cur_pos[size];
-    size_t buf_size = vote_buffer.size();
+    size_t buf_size = encrypted.size();
 
     MPI_Datatype mpi_type = get_mpi_type<size_t>();
     MPI_Allgather(&buf_size, 1, mpi_type, cur_pos, 1, mpi_type, MPI_COMM_WORLD);
-    for (int i = 1; i < size; i++) cur_pos[i] += cur_pos[i-1];
+    for (size_t i = 1; i < size; i++) cur_pos[i] += cur_pos[i-1];
 
     // Write edges to file
-    if (rank == 0) MPI_File_seek(fh, 0, MPI_SEEK_SET);
-    else MPI_File_seek(fh, cur_pos[rank - 1], MPI_SEEK_SET);
-    MPI_File_write_all(fh, vote_buffer.c_str(), vote_buffer.size(), MPI_CHAR, NULL);
+    if (rank == 0) {
+        MPI_File_seek(fh, 0, MPI_SEEK_SET);
+        MPI_File_write(fh, (const char*)&overlap_size, sizeof(overlap_size), MPI_CHAR, NULL);
+        MPI_File_seek(fh, sizeof(overlap_size), MPI_SEEK_SET);
+    } else MPI_File_seek(fh, cur_pos[rank - 1] + sizeof(overlap_size), MPI_SEEK_SET);
+    MPI_File_write_all(fh, encrypted.data(), encrypted.size(), MPI_CHAR, NULL);
 
     MPI_File_close(&fh);
 }
-
 
 void uniform_test(size_t size) {
     Distribution dist = Uniform(size);

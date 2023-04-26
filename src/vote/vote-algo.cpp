@@ -5,10 +5,12 @@
 #include <vector>
 #include <iostream>
 #include "common.h"
+#include "crypto.h"
 
 #define FIRST_LINE_BUFFER_SIZE 256
 #define BUFFER_SIZE 10000
-#define OVERLAP_MULTIPLIER 10
+
+using namespace crypto;
 
 struct RankInfo {
     int rank;
@@ -21,8 +23,9 @@ struct RankInfo {
 
 std::vector<int> tokenize_line(const std::string &line, char delimitier);
 
-void read_first_line(MPI_File fh, RankInfo &rank_info);
+void read_first_line(MPI_File fh, RankInfo &rank_info, size_t overlap_size);
 void get_start_and_end_bytes(const RankInfo &rank_info, size_t &start_byte, size_t &end_byte);
+buf_t decrypt(const char *buffer, size_t rank, size_t overlap_size);
 
 int main(int argc, char** argv) {
 
@@ -50,24 +53,41 @@ int main(int argc, char** argv) {
     MPI_Status status;
     MPI_File_open(MPI_COMM_WORLD, input_filename.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh);
 
+    size_t overlap_size;
+    MPI_File_read_at_all(fh, 0, &overlap_size, sizeof(int), MPI_CHAR, &status);
+
+    size_t num_hashes;
+    MPI_File_read_at_all(fh, sizeof(int), &num_hashes, sizeof(size_t), MPI_CHAR, &status);
+    overlap_size += sizeof(size_t) + 20 * num_hashes;
+
     // Read the first line an get data.
-    read_first_line(fh, rank_info);
+    read_first_line(fh, rank_info, overlap_size);
 
-    // Calculate start and end bytes.
-    size_t start_byte, end_byte;
-    get_start_and_end_bytes(rank_info, start_byte, end_byte);
-
-    // Collect all the data from the file.
-    size_t buffer_size = end_byte - start_byte; 
     // printf("rank %d start_byte %d end_byte %d buffer size %d\n", rank, start_byte, end_byte, buffer_size);
-    char* buffer = new char[buffer_size]();
-    MPI_File_read_at_all(fh, start_byte, buffer, buffer_size, MPI_CHAR, &status);
+    char* buffer = new char[overlap_size]();
+    MPI_File_read_at_all(fh, sizeof(int) + rank * overlap_size, buffer, overlap_size, MPI_CHAR, &status);
+    
+    Timer t3(std::to_string(size) + ":" + "decrypt_time");
+    
+    buf_t decrypted = decrypt(buffer, rank, overlap_size);
+    if (rank == 0)
+    {
+        std::string tmp;
+        int after = get_line(tmp, (char*)&decrypted[0], decrypted.size(), 0);
+        decrypted.erase(decrypted.begin(), decrypted.begin() + after - 1);
+    }
+    size_t buffer_size = decrypted.size();
+    delete[] buffer;
+    buffer = (char*)&decrypted[0];
+    
+    if (rank == 0) t3.print_duration_cycles_label_only();
 
     std::vector<int> voters;
     std::map<int, std::vector<int> > data;
     int cursor = 0;
     std::string line;
     while((cursor = get_line(line, buffer, buffer_size, cursor)) != -1) {
+        //std::cout << "Line: " << line << '\n';
         std::vector<int> nums = tokenize_line(line, ':');
         if (nums.size() == rank_info.candidate_count + 1) {
             voters.push_back(nums[0]);
@@ -75,13 +95,14 @@ int main(int argc, char** argv) {
             // std::cout << line << std::endl;
         }
     }
-    delete [] buffer;
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Find distinct voters per rank.
     std::vector<int> voter_diff;
     if (rank == size - 1) voter_diff = voters;
+    print_vec(voter_diff);
+    printf("lol\n");
 
     for (int j = 0; j < size - 1; j++) {
         std::vector<int> temp;
@@ -192,20 +213,42 @@ int main(int argc, char** argv) {
 }
 
 
-void read_first_line(MPI_File fh, RankInfo &rank_info) {
+buf_t decrypt(const char *buffer, size_t rank, size_t overlap_size) {
+    size_t enc_offset = rank * 16 + 1000000;
+    buf_t decrypted;
+    Crypto cryptor({ ENC_IV }, { ENC_KEY_CUR }, BLOCKS_PER_HASH);
+    if (!cryptor.Decrypt((const u8 *)buffer, overlap_size, enc_offset, decrypted))
+    {
+        fprintf(stderr, "Decrypt failed rank %d, likely hash mismatch\n", rank);
+        exit(1);
+    }
+    
+    // remove padding
+    size_t buffer_size = 0;
+    for (; buffer_size < decrypted.size() && decrypted[buffer_size] != '#'; ++buffer_size);
+    decrypted.resize(buffer_size);
+    return decrypted;
+}
+
+
+void read_first_line(MPI_File fh, RankInfo &rank_info, size_t overlap_size) {
 
     // Get file size.
     MPI_File_get_size(fh, &rank_info.file_size);
     // if (rank_info.rank == 0) printf("file size: %lld\n", rank_info.file_size);
 
     // Read in first line into buffer.
-    char* first_line_buffer = new char[FIRST_LINE_BUFFER_SIZE]();
-    MPI_File_read_all(fh, first_line_buffer, FIRST_LINE_BUFFER_SIZE, MPI_CHAR, NULL);
+    char* first_line_buffer = new char[overlap_size]();
+    MPI_Status status;
+    MPI_File_read_at_all(fh, sizeof(int), first_line_buffer, overlap_size, MPI_CHAR, &status);
+
+    buf_t decrypted = decrypt(first_line_buffer, 0, overlap_size);
+    decrypted.push_back(0);
 
     // Get the first line from the buffer.
     std::string line;
     int cursor = 0;
-    cursor = get_line(line, first_line_buffer, FIRST_LINE_BUFFER_SIZE, cursor);
+    cursor = get_line(line, (char*)&decrypted[0], decrypted.size(), cursor);
     std::vector<int> nums = tokenize_line(line, ':');
     rank_info.vote_count = nums[0];
     rank_info.candidate_count = nums[1];

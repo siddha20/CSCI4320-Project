@@ -7,3 +7,4 @@ data/
 build/
 aimos/output/
 aimos/slurm/
+.vscode/
