@@ -54,6 +54,10 @@
 \usepackage{fancyvrb}
 \usepackage{dsfont}
 \usepackage{relsize}
+\usepackage{enumitem}
+\usepackage[compact]{titlesec}
+
+\setlist[description]{leftmargin=\parindent,labelindent=\parindent}
 
 %% The amsthm package provides extended theorem environments
 %% \usepackage{amsthm}
@@ -603,6 +607,13 @@ decryption will fail if the hash checks fail. With AES-CTR and SHA-1 combined, w
 \section{Project Organization}
 \label{Project Organization}
 
+The repo for this project can be accessed on \href{\repo}{github}.
+The following are the team member responsibilities:
+\begin{description}
+    \item[Siddha Kilaru] 
+    \item[Alex Riddle] Implemented AES-128, AES-192, AES-256, SHA-1, AES-CTR, multi-threaded AES, multi-threaded SHA-1
+\end{description}
+
 
 \section{Summary and Future Work}
 \label{Summary and Future Work}
@@ -649,21 +660,20 @@ Ching, A., Choudhary, A., Coloma, K., Liao, W. K., Ross, R., and Gropp, W.
 IEEE/ACM International Symposium on Cluster Computing and the Grid, 2003.
 Proceedings. (pp. 104-111). IEEE. \\
 
-\bibitem[Author(year)]{testestestest}
-Leslie Lamport (1994) \emph{\LaTeX: a document preparation system}, Addison
-Wesley, Massachusetts, 2nd ed.
+\bibitem[Tran (2013)]{testestestest}
+Tran, N. P., Lee, M., Hong, S., & Lee, S. J. (2013). High throughput parallelization of AES-CTR algorithm. IEICE TRANSACTIONS on Information and Systems, 96(8), 1685-1695.
+
 \\
-\bibitem[Author(year)]{testestestest}
-Leslie Lamport (1994) \emph{\LaTeX: a document preparation system}, Addison
-Wesley, Massachusetts, 2nd ed.
+\bibitem[Durad(2019)]{testestestest}
+Durad, M. H., Raza, A., Asad, A., & Akhtar, M. N. (2019). Parallelization of Encryption Algorithms using MPI.
 \\
-\bibitem[Author(year)]{testestestest}
-Leslie Lamport (1994) \emph{\LaTeX: a document preparation system}, Addison
-Wesley, Massachusetts, 2nd ed.
+\bibitem[Lee(2015)]{testestestest}
+Lee, H. U., Lee, S., Kim, J. W., & Won, Y. (2015). Parallelizing sha-1. IEICE Electronics Express, 12(12), 20150371-20150371.
 \\
-\bibitem[Author(year)]{testestestest}
-Leslie Lamport (1994) \emph{\LaTeX: a document preparation system}, Addison
-Wesley, Massachusetts, 2nd ed.
+\bibitem[Manavski(2007)]{testestestest}
+Manavski, S. A. (2007, November). CUDA compatible GPU as an efficient hardware accelerator for AES cryptography. In 2007 IEEE International Conference on Signal Processing and Communications (pp. 65-68). IEEE.
+
+
 
 \end{thebibliography}
 \end{document}
