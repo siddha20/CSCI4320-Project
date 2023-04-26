@@ -55,7 +55,7 @@
 \usepackage{dsfont}
 \usepackage{relsize}
 \usepackage{enumitem}
-\usepackage[compact]{titlesec}
+% \usepackage[compact]{titlesec}
 
 \setlist[description]{leftmargin=\parindent,labelindent=\parindent}
 
@@ -225,9 +225,8 @@ convenient for repeated access.
 \label{Vote Generation Algorithm}
 We distribute the workload across several compute nodes (ranks) to generate
 votes using MPI. Also, we make use of MPI parallel I/O so each rank can write
-to a file in parallel as well. The main algorithm for this process is given
-below:
-\begin{algorithm}[H]
+to a file in parallel as well.
+\begin{algorithm}
     \caption{Parallel Vote Generation}\label{alg:cap}
     \begin{algorithmic}[1]
     \Procedure{VoteGen}{$rank$, $startId$, $endId$}
@@ -244,29 +243,29 @@ below:
     \end{algorithmic}
 \end{algorithm}
 
-This algorithm is active in every single rank. The inputs to the algorithm are
-$rank$, $startId$, and $endId$. Different $startId$s and $endId$s are passed to
-the ranks, representing the section of votes each rank is responsible for
-generating and writing. They are calculated by partitioning the total number of
-voters across ranks and then carefully assigning the bounds for each rank. This
-partition can be calculated ahead of time because the total number of desired
-votes is passed to the executable as an argument. The first part of the
-algorithm is to generate the vote sequence. To do this, we loop across the
-rank's assigned range (prescribed by $startId$ and $endId$) and append to
-$voteSequence$, which is a buffer that contains the vote sequences for all the
-assigned ids. Since the buffer sizes are not known until they are fully
-generated, the ranks need to share the buffer sizes with each other to write to
-the file in the correct place. Consequently, the next step is to accurately
-assign cursor positions for each rank; in parallel I/O, it is very important
-that alignment across different ranks is perfect; otherwise, you risk
-overwriting data. To achieve this, the buffer sizes are shared across all the
-ranks with each other and stored in $allSizes$. Using that array, we then
-generate the array $cursorPos$, which is just the cumulative sum. Finally,
-using $cursorPos[rank]$, which is the correct cursor position for $rank$, the
-contents of the buffer ($voteSequence$) can be written to the file.
-Specifically, we use \C{MPI_File_seek} to move the file cursor and use the
-collective write operation \C{MPI_File_write_all} to write the contents of the
-buffer to the file:
+Algorithm 1, parallel vote generation, is active in every single rank. The
+inputs to the algorithm are $rank$, $startId$, and $endId$. Different
+$startId$s and $endId$s are passed to the ranks, representing the section of
+votes each rank is responsible for generating and writing. They are calculated
+by partitioning the total number of voters across ranks and then carefully
+assigning the bounds for each rank. This partition can be calculated ahead of
+time because the total number of desired votes is passed to the executable as
+an argument. The first part of the algorithm is to generate the vote sequence.
+To do this, we loop across the rank's assigned range (prescribed by $startId$
+and $endId$) and append to $voteSequence$, which is a buffer that contains the
+vote sequences for all the assigned ids. Since the buffer sizes are not known
+until they are fully generated, the ranks need to share the buffer sizes with
+each other to write to the file in the correct place. Consequently, the next
+step is to accurately assign cursor positions for each rank; in parallel I/O,
+it is very important that alignment across different ranks is perfect;
+otherwise, you risk overwriting data. To achieve this, the buffer sizes are
+shared across all the ranks with each other and stored in $allSizes$. Using
+that array, we then generate the array $cursorPos$, which is just the
+cumulative sum. Finally, using $cursorPos[rank]$, which is the correct cursor
+position for $rank$, the contents of the buffer ($voteSequence$) can be written
+to the file. Specifically, we use \C{MPI_File_seek} to move the file cursor and
+use the collective write operation \C{MPI_File_write_all} to write the contents
+of the buffer to the file:
 \begin{center}
     \begin{BVerbatim}
 MPI_File_seek(fh, cursor_pos[rank - 1], 
@@ -406,9 +405,8 @@ the number of candidates \cite{schulze1}. This seems like an issue for scaling
 up; however, the number of candidates stays constant and is typically a small
 number. As a result, there really is no use in parallelizing this aspect of the
 algorithm. Where parallelization comes into play is the actual creation of the
-graph, which we represent using an adjacency matrix. The algorithm is given
-below:
-\begin{algorithm}[H]
+graph, which we represent using an adjacency matrix.
+\begin{algorithm}
     \caption{Preference Graph Generation}\label{alg:cap}
     \begin{algorithmic}[1]
     \Procedure{GraphGen}{$rank$, $startId$, $endId$, $data$}
@@ -427,19 +425,19 @@ below:
     \end{algorithmic}
 \end{algorithm}
 
-This algorithm is run on every rank concurrently. Similar to the first the
-algorithm in Section 2.2, the same arguments are passed in with the addition of
-$data$, which contains all the votes for each voter in the rank's id range. An
-example vote is in the form $\{c_1, c_2, c_3, \ldots, c_n\}$, which is passed
-to $ranking$ on line 3. $graph$ represents preferences for each candidate such
-that $graph[c_i][c_j] = k$ means that $c_i$ is preferred to $c_j$ a total of
-$k$ times; note that $k \geq 0$. To generate $graph$, the following is done
-from lines 2 to 11: for all $i$ and $j$ where $i < j$, $c_i$ is preferred to
-$c_j$, so we increment $graph[c_i][c_j]$ by 1. $graph$ contains all the
-pairwise preferences only for the data stored on its own rank, so a reduce the
-operation needs to be performed, to sum up all the graphs. This is done on line
-12 with \C{MPI_Reduce}, and $finalGraph$ is stored only on rank 0, containing
-preferences for the whole vote data set:
+Algorithm 2, preference graph generation, is run on every rank concurrently.
+Similar to the first the algorithm in Section 2.2, the same arguments are
+passed in with the addition of $data$, which contains all the votes for each
+voter in the rank's id range. An example vote is in the form $\{c_1, c_2, c_3,
+\ldots, c_n\}$, which is passed to $ranking$ on line 3. $graph$ represents
+preferences for each candidate such that $graph[c_i][c_j] = k$ means that $c_i$
+is preferred to $c_j$ a total of $k$ times; note that $k \geq 0$. To generate
+$graph$, the following is done from lines 2 to 11: for all $i$ and $j$ where $i
+< j$, $c_i$ is preferred to $c_j$, so we increment $graph[c_i][c_j]$ by 1.
+$graph$ contains all the pairwise preferences only for the data stored on its
+own rank, so a reduce the operation needs to be performed, to sum up all the
+graphs. This is done on line 12 with \C{MPI_Reduce}, and $finalGraph$ is stored
+only on rank 0, containing preferences for the whole vote data set:
 \begin{center}
     \begin{BVerbatim}
     MPI_Reduce(graph, final_graph, 
@@ -635,15 +633,13 @@ we have secure storage of voting data for transmission.
 \subsection{Results}
 
 Due to the increased computational cost of AES encryption and SHA-1 hashing, as
-well as the much larger voting data that results from these additions, we had to
-cut down the number of votes tested by an order of magnitude to ensure that we
-could get results on AiMOS in a reasonable amount of time. The results shown in
-Figure 7 show the total time needed to encrypt and hash the generated voting
+well as the much larger voting data that results from these additions, we had
+to cut down the number of votes tested by an order of magnitude to ensure that
+we could get results on AiMOS in a reasonable amount of time. The results shown
+in Figure 7 show the total time needed to encrypt and hash the generated voting
 data file. Similar to previous results, we can see there is little benefit to
 using more ranks with vote counts around 10,000. Though, in this case, we can
 actually observe a minor speedup 
-
-
 \begin{center}
     \includegraphics[scale=.6]{../aimos-stats/collection8/plots/encrypt_time.png}
     \captionof{figure}{Compares the total time versus the number of votes for
@@ -658,37 +654,43 @@ actually observe a minor speedup
 \section{Project Organization}
 \label{Project Organization}
 
-The repo for this project can be accessed on \href{\repo}{github}.
-The following are the team member responsibilities:
+The repo for this project can be accessed on \href{\repo}{github}. The
+following describes the team members' responsibilities:
 \begin{description}
-    \item[Siddha Kilaru] Implemented Vote generation, vote tallying, and responsible for all data collection.
-    \item[Alex Riddle] Implemented AES-128, AES-192, AES-256, SHA-1, AES-CTR, multi-threaded AES, multi-threaded SHA-1
+    \item[Siddha Kilaru] Implemented vote generation, vote tallying, and
+    responsible for all data collection.
+    \item[Alex Riddle] Implemented AES-128, AES-192, AES-256, SHA-1, AES-CTR,
+    multi-threaded AES, and multi-threaded SHA-1.
 \end{description}
 
 
 \section{Summary and Future Work}
 \label{Summary and Future Work}
 
-Improve the performance of encryption as we needed to use smaller
-numbers of votes in order to prevent timeouts on AiMOS. This would involve
-optimizing the AES implementation. We could also optimize our SHA-1 by
-unrolling loops.
+The work in this paper highlights that fully digital voting systems are
+possible and safe. In the paper's first section, we showed that generating
+large amounts of votes and leveraging parallel computation was possible. In the
+paper's second section, we showed how tallying up votes is also efficient and
+parallelizable. Also, we demonstrated that altering the distribution of
+permutation generation serves as a basis for Monte Carlo simulations and
+possible research insights into candidate rankings. Lastly, we reviewed how to
+secure votes, starting from the voter and ending at the teller. We used
+encryption and hashing algorithms, parallelized them for use with large vote
+counts, and showed that they preserved the integrity of the votes.
 
-We implemented a mechanism to generate random large sets of voting
-data and a mechanism to encrypt and decrypt these to enable storage and
-transmission of this dataset. We use AES-CTR and threads along with SHA-1 to
-parallelize the encryption process.
+To expand on the research done in this paper, we would like to look deeper into
+our voting system and find any possible weaknesses and come up with ways to
+protect against different types of attacks. Implementing advanced cryptographic
+methods like secure multiparty computation (SMPC) and zero-knowledge proofs
+(ZKP) might help increase voter privacy and keep data more secure, making the
+system even stronger.
 
-
-
-%% If you have bibdatabase file and want bibtex to generate the
-%% bibitems, please use
-%%
-% \bibliographystyle{elsarticle-harv} 
-% \bibliography{example}
-
-%% else use the following coding to input the bibitems directly in the
-%% TeX file.
+Additionally, studying the scalability and fault tolerance of the proposed
+system is important for it to work well in real life. By looking at things like
+changes in voter mismatch between the generation and tallying side, network
+conditions, and bottlenecks, we can develop methods for balancing workloads,
+duplicating data, and fixing errors. This could lead to a more dependable and
+resilient digital voting systems used in the future.
 
 \begin{thebibliography}{20}
 
