@@ -40,15 +40,16 @@ int main(int argc, char** argv) {
         input_filename = argv[1];
     }
 
-    Timer total_time(std::to_string(size) + ":" + "total_time");
-    total_time.start();
-
     RankInfo rank_info;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank_info.rank);
     MPI_Comm_size(MPI_COMM_WORLD, &rank_info.size);
     int rank = rank_info.rank;
     int size = rank_info.size;
 
+
+    Timer total_time(std::to_string(size) + ":" + "total_time");
+    total_time.start();
+    
     std::srand(1230128093 + rank << 2);
 
     // Open up the file.
