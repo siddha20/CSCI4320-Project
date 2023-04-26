@@ -635,14 +635,17 @@ we have secure storage of voting data for transmission.
 \subsection{Results}
 
 Due to the increased computational cost of AES encryption and SHA-1 hashing, as
-well as the much larger voting data that results from these additions, we had to
-cut down the number of votes tested by an order of magnitude to ensure that we
-could get results on AiMOS in a reasonable amount of time. The results shown in
-Figure 7 show the total time needed to encrypt and hash the generated voting
-data file. Similar to previous results, we can see there is little benefit to
-using more ranks with vote counts around 10,000. Though, in this case, we can
-actually observe a minor speedup 
-
+well as the much larger voting data that results from these additions (each
+SHA-1 digest is 20 bytes, and we have many hashes for each chunk of the file),
+we had to cut down the number of votes tested by an order of magnitude to ensure
+that we could get results on AiMOS in a reasonable amount of time. The results
+shown in Figure 7 show the total time needed to encrypt and hash the generated
+voting data file. Similar to previous results, we can see that there is little
+benefit to using more ranks with vote counts around 10,000. Though, in this
+case, we can actually observe a minor speedup right at 10,000 votes: 256 ranks
+vs. 32 ranks shows that 256 ranks has a slight edge in speed, though it is so
+slight that this number of ranks would not be worth it for vote counts at or
+around 10,000.
 
 \begin{center}
     \includegraphics[scale=.6]{../aimos-stats/collection8/plots/encrypt_time.png}
@@ -654,15 +657,26 @@ actually observe a minor speedup
              collected on AiMOS (DCS) supercomputer. }
 \end{center}
 
+We see very similar running times for the encryption and hashing for vote counts
+less than or around 10,000. Then, between 10,000 and 20,000 votes, we start to
+see a clear divergence in running times between the numbers of ranks. The
+general trend is that as the number of ranks increases, the running times
+decrease, which becomes more apparent as the number of votes (i.e., the total
+size of the file) increases. The one strange exception is 32 ranks: for some
+reason, 32 ranks is consistently slower than 8 ranks, despite 32 ranks clearly
+providing more computational capacity. This same phenomenon can be observed in
+the above figures as well, particularly Figure 4.
+
+
 
 \section{Project Organization}
 \label{Project Organization}
 
-The repo for this project can be accessed on \href{\repo}{github}.
+The repo for this project can be accessed on \href{\repo}{GitHub}.
 The following are the team member responsibilities:
 \begin{description}
     \item[Siddha Kilaru] Implemented Vote generation, vote tallying, and responsible for all data collection.
-    \item[Alex Riddle] Implemented AES-128, AES-192, AES-256, SHA-1, AES-CTR, multi-threaded AES, multi-threaded SHA-1
+    \item[Alex Riddle] Implemented AES, AES-CTR, multi-threaded AES, multi-threaded SHA-1.
 \end{description}
 
 
