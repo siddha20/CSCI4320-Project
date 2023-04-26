@@ -121,9 +121,7 @@ digital voting system is also investigated in the paper. The paper explores the
 effectiveness of standard encryption and cryptography algorithm in ensuring
 voter privacy and integrity. We find that parallel computing massively helps in
 generating large amounts of voter data and also provides a noticeable speedup
-in tallying up votes and Monte Carlo simulations. Additionally,
-\textbf{INCOMPLETE}.
-
+in tallying up votes and Monte Carlo simulations.
 
 \end{abstract}
 
@@ -553,49 +551,86 @@ large vote counts.
 \label{Encrypting and Hashing Votes}
 
 \subsection{Intro to AES}
-To encrypt the vote data, we fully implemented the Advanced Encryption Standard (AES) which is the same cipher used by SSL/HTTPS and SSH,
-and is one of the most secure encryption algorithms currently available. AES is a block cipher, and typically encrypts 128 bits (or 16 bytes)
-at a time. A naive implementation would just encrypt block by block, but this would mean that the same plaintext (or input) would produce the same
-ciphertext (encrypted output). With this approach, attackers could recognize patterns in the encrypted vote data to guess how many votes each candidate has.
+To encrypt the vote data, we fully implemented the Advanced Encryption Standard
+(AES) which is the same cipher used by SSL/HTTPS and SSH, and is one of the
+most secure encryption algorithms currently available. AES is a block cipher,
+and typically encrypts 128 bits (or 16 bytes) at a time. A naive implementation
+would just encrypt block by block, but this would mean that the same plaintext
+(or input) would produce the same ciphertext (encrypted output). With this
+approach, attackers could recognize patterns in the encrypted vote data to
+guess how many votes each candidate has.
 
-To use AES securely, we must choose a ``mode''. A well-known and commonly used mode is ``Cipher Block Chaining'' (CBC), where we XOR each input
-block with the previous block's ciphertext, using an Initial Vector (IV) for the first block. This ensures that, even if we encrypt identical blocks,
-we get completely different resulting ciphertexts. CBC may not be secure if the same input is encrypted twice, but in our case we only encrypt one large
-chunk of data a single time. The biggest issue with CBC is that it cannot be parallelized, as the key for each block depends on the previous block.
+To use AES securely, we must choose a ``mode''. A well-known and commonly used
+mode is ``Cipher Block Chaining'' (CBC), where we XOR each input block with the
+previous block's ciphertext, using an Initial Vector (IV) for the first block.
+This ensures that, even if we encrypt identical blocks, we get completely
+different resulting ciphertexts. CBC may not be secure if the same input is
+encrypted twice, but in our case we only encrypt one large chunk of data a
+single time. The biggest issue with CBC is that it cannot be parallelized, as
+the key for each block depends on the previous block.
 
-As AES is expensive, we must use a mode that can be parallelized, such that we can encrypt and decrypt large sums of data as fast as possible. What's more,
-the larger the key, the more encryption rounds and thus the more expensive each encryption operation is, thus greatly increasing the running time.
+As AES is expensive, we must use a mode that can be parallelized, such that we
+can encrypt and decrypt large sums of data as fast as possible. What's more,
+the larger the key, the more encryption rounds and thus the more expensive each
+encryption operation is, thus greatly increasing the running time.
 
 \subsection{AES Counter (CTR) Mode}
 
-AES Counter (CTR) mode is a simple mode whereby we encrypt a ``counter'' block rather than the voting data plaintext itself. The counter block
-is typically generated using randomized 96-bits and then a 32-bit unsigned counter to get to the 16 bytes or 128-bit block size required for AES.
-Then, for every subsequent 16-byte block, we increment the 32-bit counter which is then encrypted with AES again. With the encrypted counter block,
-we can then XOR the plaintext to encrypt the voting data. Because the ``key'' in this case is an AES ciphertext which can be generated just from
-the IV and counter value, we can effectively find the XOR key for any block and encrypt/decrypt these blocks independently from each other.
+AES Counter (CTR) mode is a simple mode whereby we encrypt a ``counter'' block
+rather than the voting data plaintext itself. The counter block is typically
+generated using randomized 96-bits and then a 32-bit unsigned counter to get to
+the 16 bytes or 128-bit block size required for AES. Then, for every subsequent
+16-byte block, we increment the 32-bit counter which is then encrypted with AES
+again. With the encrypted counter block, we can then XOR the plaintext to
+encrypt the voting data. Because the ``key'' in this case is an AES ciphertext
+which can be generated just from the IV and counter value, we can effectively
+find the XOR key for any block and encrypt/decrypt these blocks independently
+from each other.
 
-Because the blocks can be independently ciphered, we can parallelize CTR mode and use it to encrypt and decrypt our voting data using threading.
-In particular, we can divide up our large voting data file and assign a handful of blocks to each rank, such that each rank has its own chunk of the
-larger voting data file, and can use threading to encrypt the smaller blocks in parallel. This means we have two levels of parallelization for AES-CTR
-with threading and MPI: multiple threads per rank, and many ranks in the MPI domain.
+Because the blocks can be independently ciphered, we can parallelize CTR mode
+and use it to encrypt and decrypt our voting data using threading. In
+particular, we can divide up our large voting data file and assign a handful of
+blocks to each rank, such that each rank has its own chunk of the larger voting
+data file, and can use threading to encrypt the smaller blocks in parallel.
+This means we have two levels of parallelization for AES-CTR with threading and
+MPI: multiple threads per rank, and many ranks in the MPI domain.
 
-We use parallel IO to allow each rank to read and write its own set of 128-bit blocks. Because we are working with varying lengths of text, and the
-start and end of ``chunks'' of blocks must be deterministic, we pad out the plaintext voting data with hashtag characters to the maximum possible length
-of voting strings based on the number of votes and the candidates. This allows deterministic start and end byte positions to be calculated on the
+\begin{center}
+    \includegraphics[scale=.6]{../aimos-stats/collection8/plots/encrypt_time.png}
+    \captionof{figure}{Compares the total time versus the number of votes for
+             generating and encrypting candidate listings. Each rank has its
+             own line indicated by the legend. Each point represents an actual
+             data point (access
+             \href{\repo{aimos-stats/collection8/output/vote-gen}}{here})
+             collected on AiMOS (DCS) supercomputer. }
+\end{center}
+
+We use parallel IO to allow each rank to read and write its own set of 128-bit
+blocks. Because we are working with varying lengths of text, and the start and
+end of ``chunks'' of blocks must be deterministic, we pad out the plaintext
+voting data with hashtag characters to the maximum possible length of voting
+strings based on the number of votes and the candidates. This allows
+deterministic start and end byte positions to be calculated on the
 receiving/decrypting side.
 
 \subsection{Intro to SHA-1}
 
-AES grants us confidentiality, but we also need data integrity/authentication to prevent malleability of our encrypted data.
-Malleability in cryptography is defined as the degree to which encrypted data can be changed such that an altered plaintext results
-when the intended receiver decrypts the data. In particular, it is the possibility to which the modified ciphertext results in a plaintext
-that was never encrypted.
+AES grants us confidentiality, but we also need data integrity/authentication
+to prevent malleability of our encrypted data. Malleability in cryptography is
+defined as the degree to which encrypted data can be changed such that an
+altered plaintext results when the intended receiver decrypts the data. In
+particular, it is the possibility to which the modified ciphertext results in a
+plaintext that was never encrypted.
 
-To protect against this, we implemented the SHA-1 cryptographic hash. After each rank uses threads to encrypt its share of blocks of voting data,
-multi-threaded SHA-1 begins. We define a number of blocks to use for each hash. I.e., we hash every $x$ blocks and append the resulting 20-byte SHA-1
-digest to the end of the encrypted data. The receiving side then computes its own hashes over the encrypted data and appends all digests together
-together. The large strings of digests are then compared on the receiving side before decryption continues. The hash comparison will now fail if
-the encrypting voting data is ever modified by an adversary in transit. 
+To protect against this, we implemented the SHA-1 cryptographic hash. After
+each rank uses threads to encrypt its share of blocks of voting data,
+multi-threaded SHA-1 begins. We define a number of blocks to use for each hash.
+I.e., we hash every $x$ blocks and append the resulting 20-byte SHA-1 digest to
+the end of the encrypted data. The receiving side then computes its own hashes
+over the encrypted data and appends all digests together together. The large
+strings of digests are then compared on the receiving side before decryption
+continues. The hash comparison will now fail if the encrypting voting data is
+ever modified by an adversary in transit. 
 
 \subsection{Parallelizing SHA-1}
 
@@ -610,13 +645,23 @@ decryption will fail if the hash checks fail. With AES-CTR and SHA-1 combined, w
 The repo for this project can be accessed on \href{\repo}{github}.
 The following are the team member responsibilities:
 \begin{description}
-    \item[Siddha Kilaru] 
+    \item[Siddha Kilaru] Implemented Vote generation, vote tallying, and responsible for all data collection.
     \item[Alex Riddle] Implemented AES-128, AES-192, AES-256, SHA-1, AES-CTR, multi-threaded AES, multi-threaded SHA-1
 \end{description}
 
 
 \section{Summary and Future Work}
 \label{Summary and Future Work}
+
+Improve the performance of encryption as we needed to use smaller
+numbers of votes in order to prevent timeouts on AiMOS. This would involve
+optimizing the AES implementation. We could also optimize our SHA-1 by
+unrolling loops.
+
+We implemented a mechanism to generate random large sets of voting
+data and a mechanism to encrypt and decrypt these to enable storage and
+transmission of this dataset. We use AES-CTR and threads along with SHA-1 to
+parallelize the encryption process.
 
 
 
@@ -660,18 +705,23 @@ Ching, A., Choudhary, A., Coloma, K., Liao, W. K., Ross, R., and Gropp, W.
 IEEE/ACM International Symposium on Cluster Computing and the Grid, 2003.
 Proceedings. (pp. 104-111). IEEE. \\
 
-\bibitem[Tran (2013)]{testestestest}
-Tran, N. P., Lee, M., Hong, S., & Lee, S. J. (2013). High throughput parallelization of AES-CTR algorithm. IEICE TRANSACTIONS on Information and Systems, 96(8), 1685-1695.
+\bibitem[Tran (2013)]{tran}
+Tran, N. P., Lee, M., Hong, S., and Lee, S. J. (2013). High throughput
+parallelization of AES-CTR algorithm. IEICE TRANSACTIONS on Information and
+Systems, 96(8), 1685-1695. \\
 
-\\
-\bibitem[Durad(2019)]{testestestest}
-Durad, M. H., Raza, A., Asad, A., & Akhtar, M. N. (2019). Parallelization of Encryption Algorithms using MPI.
-\\
-\bibitem[Lee(2015)]{testestestest}
-Lee, H. U., Lee, S., Kim, J. W., & Won, Y. (2015). Parallelizing sha-1. IEICE Electronics Express, 12(12), 20150371-20150371.
-\\
-\bibitem[Manavski(2007)]{testestestest}
-Manavski, S. A. (2007, November). CUDA compatible GPU as an efficient hardware accelerator for AES cryptography. In 2007 IEEE International Conference on Signal Processing and Communications (pp. 65-68). IEEE.
+\bibitem[Durad(2019)]{durad}
+Durad, M. H., Raza, A., Asad, A., and Akhtar, M. N. (2019). Parallelization of
+Encryption Algorithms using MPI. \\
+
+\bibitem[Lee(2015)]{lee}
+Lee, H. U., Lee, S., Kim, J. W., and Won, Y. (2015). Parallelizing sha-1. IEICE
+Electronics Express, 12(12), 20150371-20150371. \\
+
+\bibitem[Manavski(2007)]{man}
+Manavski, S. A. (2007, November). CUDA compatible GPU as an efficient hardware
+accelerator for AES cryptography. In 2007 IEEE International Conference on
+Signal Processing and Communications (pp. 65-68). IEEE.
 
 
 
